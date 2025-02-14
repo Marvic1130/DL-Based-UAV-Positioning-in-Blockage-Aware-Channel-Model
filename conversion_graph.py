@@ -48,9 +48,9 @@ if __name__ == '__main__':
     val_dataset = TrainDataset(x_val, dtype=torch.float32).to(hp.device)
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    lr_ls = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
+    lr_ls = [1e-2, 1e-3, 1e-4, 1e-5]
     results = {lr: {"train_loss": [], "val_loss": []} for lr in lr_ls}
 
     for lr in lr_ls:
@@ -65,6 +65,8 @@ if __name__ == '__main__':
         # 모델 및 옵티마이저 초기화
         model = Net(train_dataset.x.shape[1], 1024, 4, output_N=2).to(hp.device)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
         for epoch in trange(1000, desc=f"Training with lr={lr}"):
             train_loss = 0.0
@@ -116,8 +118,8 @@ if __name__ == '__main__':
     # wandb에 최종 결과 플롯 로깅
     plt.figure(figsize=(12, 6))
     for lr in lr_ls:
-        plt.plot(results[lr]["train_loss"], label=f"Train Loss (lr={lr})", linestyle="--")
-        plt.plot(results[lr]["val_loss"], label=f"Val Loss (lr={lr})")
+        plt.plot(results[lr]["train_loss"], label=f"Train Loss", linestyle="--")
+        plt.plot(results[lr]["val_loss"], label=f"Val Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Train and Validation Loss for Different Learning Rates")

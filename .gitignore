@@ -1,0 +1,7 @@
+/.idea
+/__pycache__
+/utils/__pycache__
+test.ipynb
+/runs
+/data/data.csv
+/wandb

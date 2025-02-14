@@ -1,0 +1,42 @@
+# model settings
+device: auto # Options: cuda, ,mps, cpu, auto
+batch: 256
+epochs: 1000
+
+# UAV and environment settings
+num_node: 4 # Number of ground nodes
+num_time: 30 # move _time
+max_dist: 30
+area_size: 200
+v_speed: 30000/3600/2/10*2
+H_min: 10 # UAV min height
+H_max: 50 # UAV max height
+
+# No-fly zone (NFZ) generation
+num_blocks: 20  # Number of points to generate for buildings in NFZ
+
+# Channel settings
+beta_1: 10 ** (-4.643) # LoS
+beta_2: 10 ** (-5.643) # NLoS
+noise: 10 ** (-10.7)
+P_AVG: 1 # 평균 파워
+P_PEAK: 4 # 최대 파워
+
+# Dataset settings
+num_samples: 500000
+num_val_samples: 1000
+
+# Model settings
+hidden_N: 2000  # Number of neurons in hidden layers
+hidden_L: 4  # Number of hidden layers in the neural network
+
+# Penalty weights
+penalty_weight:
+  - 5.5
+  - 0.5
+  - 0.2
+  - 0.6
+
+# Checkpoint and output paths
+checkpoint_path: ./weights/model_state_dict.pt  # Path to save or load model weights
+output_directory: ./UAV_TRA  # Directory to save output images and logs

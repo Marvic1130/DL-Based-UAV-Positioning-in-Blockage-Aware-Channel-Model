@@ -178,20 +178,18 @@ class BlockageDataset(Dataset):
         return self
     
     
-class SvlDataset(Dataset):
-    def __init__(self, x, y, dtype=torch.float32):
+class TrainDataset(Dataset):
+    def __init__(self, x, dtype=torch.float32):
         self.x = torch.tensor(x, dtype=dtype)
-        self.y = torch.tensor(y, dtype=dtype)
 
     def __len__(self):
         return len(self.x)
 
     def __getitem__(self, idx):
-        return self.x[idx], self.y[idx]
-    
+        return self.x[idx]
+
     def to(self, device: torch.device):
         self.x = self.x.to(device)
-        self.y = self.y.to(device)
         return self
 
 if __name__ == "__main__":

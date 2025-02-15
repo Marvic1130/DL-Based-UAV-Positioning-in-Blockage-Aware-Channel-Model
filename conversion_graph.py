@@ -47,7 +47,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    lr_ls = [5e-3, 1e-3, 5e-4, 1e-4, 1e-5]
+    lr_ls = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
     results = {lr: {"train_loss": [], "val_loss": []} for lr in lr_ls}
 
     for lr in lr_ls:
@@ -144,5 +144,5 @@ if __name__ == '__main__':
     plt.show()
 
     # wandb에 플롯 로깅
-    wandb.log({"loss_plot": wandb.Image('./data/loss.pdf')})
+    wandb.log({"loss_plot": wandb.Image('./data/loss.svg')})
     wandb.finish()

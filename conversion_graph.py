@@ -20,11 +20,8 @@ obstacle_ls = [
     CubeObstacle(-30, 25, 35, 60, 20, 0.1),
     CubeObstacle(-30, -25, 45, 10, 35, 0.1),
     CubeObstacle(-30, -60, 35, 60, 20, 0.1),
-    CubeObstacle(-70, -20, 20, 20, 65, 0.1),
     CubeObstacle(50, -20, 35, 25, 25, 0.1),
     CylinderObstacle(10, -5,  70, 15, 0.1),
-    CylinderObstacle(-60, -50, 40, 20, 0.1),
-    CylinderObstacle(60, -50, 30, 10, 0.1)
 ]
 
 if __name__ == '__main__':
@@ -50,7 +47,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    lr_ls = [1e-2, 1e-3, 1e-4, 1e-5]
+    lr_ls = [5e-3, 1e-3, 5e-4, 1e-4, 1e-5]
     results = {lr: {"train_loss": [], "val_loss": []} for lr in lr_ls}
 
     for lr in lr_ls:
@@ -110,16 +107,19 @@ if __name__ == '__main__':
 
             # wandb에 손실 로깅
             wandb.log({
-                f"train_loss_lr_{lr}": train_loss,
-                f"val_loss_lr_{lr}": val_loss,
+                f"train_loss": train_loss,
+                f"val_loss": val_loss,
                 "epoch": epoch + 1
             })
+        wandb.finish()
+
+    wandb.init(project="DL-based UAV Positioning", name=f"lr_test result")
 
     # wandb에 최종 결과 플롯 로깅
     plt.figure(figsize=(12, 6))
     for lr in lr_ls:
-        plt.plot(results[lr]["train_loss"], label=f"Train Loss", linestyle="--")
-        plt.plot(results[lr]["val_loss"], label=f"Val Loss")
+        plt.plot(results[lr]["train_loss"], label=f"Train Loss (lr={lr})", linestyle="--")
+        plt.plot(results[lr]["val_loss"], label=f"Val Loss (lr={lr})")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Train and Validation Loss for Different Learning Rates")

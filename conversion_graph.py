@@ -112,37 +112,3 @@ if __name__ == '__main__':
                 "epoch": epoch + 1
             })
         wandb.finish()
-
-    wandb.init(project="DL-based UAV Positioning", name=f"lr_test result")
-
-    # wandb에 최종 결과 플롯 로깅
-    plt.figure(figsize=(14, 10))
-
-    # Train Loss Plot
-    plt.subplot(2, 1, 1)
-    for lr in lr_ls:
-        plt.plot(results[lr]["train_loss"], label=f"Train Loss (lr={lr})", linestyle="--")
-    plt.xlabel("Epoch")
-    plt.ylabel("Train Loss")
-    plt.title("Train Loss for Different Learning Rates")
-    plt.legend()
-    plt.grid(True)
-
-    # Validation Loss Plot
-    plt.subplot(2, 1, 2)
-    for lr in lr_ls:
-        plt.plot(results[lr]["val_loss"], label=f"Val Loss (lr={lr})")
-    plt.xlabel("Epoch")
-    plt.ylabel("Validation Loss")
-    plt.title("Validation Loss for Different Learning Rates")
-    plt.legend()
-    plt.grid(True)
-
-    plt.tight_layout()
-    plt.savefig('./data/loss.pdf', dpi=300)
-    plt.savefig('./data/loss.svg', dpi=300)
-    plt.show()
-
-    # wandb에 플롯 로깅
-    wandb.log({"loss_plot": wandb.Image('./data/loss.svg')})
-    wandb.finish()

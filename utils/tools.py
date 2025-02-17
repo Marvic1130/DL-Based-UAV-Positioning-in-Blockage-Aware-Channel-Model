@@ -55,9 +55,7 @@ def calc_sig_strength_gpu(station_pos: Tensor, gn_pos: Tensor, obst: Tensor):
     return torch.mean(se, dim=1)
 
 def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor):
-    x_batch_reshaped = x_batch.view(-1, 4, 3)
-    
-    p1, p2, q = y_pred, x_batch_reshaped, obst_points
+    p1, p2, q = y_pred, x_batch, obst_points
 
     # v와 w의 차원 수정
     v = p2 - p1.unsqueeze(1)  # [batch_size, 4, 3]

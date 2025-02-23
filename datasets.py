@@ -3,6 +3,7 @@ from abc import abstractmethod
 
 import numpy as np
 from matplotlib import pyplot as plt
+import plotly.graph_objects as go
 import torch
 from numpy import dtype
 from tqdm import trange
@@ -16,6 +17,7 @@ class Obstacle:
                       "y": y,
                       "height": height}
         self.points = [0,0,0]
+        self.mesh = None
 
     @property
     def x(self):
@@ -34,6 +36,10 @@ class Obstacle:
 
     def plot(self, ax: plt.Axes):
         return ax.scatter(self.points[0], self.points[1], self.points[2])
+
+    @abstractmethod
+    def plotly_obj(self):
+        pass
 
     @abstractmethod
     def is_inside(self, x: float, y: float, z: float):
@@ -89,10 +95,62 @@ class CubeObstacle(Obstacle):
     def __str__(self):
         return f"CubeCloud: {self.shape}"
 
+    def plotly_obj(self, opacity=1, color=None):
+        if self.mesh is not None:
+            return self.mesh
+
+        vertices = [
+            [self.x, self.y, 0],
+            [self.x + self.width, self.y, 0],
+            [self.x + self.width, self.y + self.depth, 0],
+            [self.x, self.y + self.depth, 0],
+            [self.x, self.y, self.height],
+            [self.x + self.width, self.y, self.height],
+            [self.x + self.width, self.y + self.depth, self.height],
+            [self.x, self.y + self.depth, self.height]
+        ]
+
+        triangles = [
+            # 바닥면
+            (0, 1, 2), (0, 2, 3),
+            # 천정면
+            (4, 5, 6), (4, 6, 7),
+            # 앞면
+            (0, 1, 5), (0, 5, 4),
+            # 오른쪽 면
+            (1, 2, 6), (1, 6, 5),
+            # 뒷면
+            (2, 3, 7), (2, 7, 6),
+            # 왼쪽 면
+            (3, 0, 4), (3, 4, 7)
+        ]
+        i = [t[0] for t in triangles]
+        j = [t[1] for t in triangles]
+        k = [t[2] for t in triangles]
+
+        # 각 꼭짓점 좌표 분리
+        x_coords = [v[0] for v in vertices]
+        y_coords = [v[1] for v in vertices]
+        z_coords = [v[2] for v in vertices]
+
+        # Mesh3d 트레이스 생성 (Plotly는 기본적으로 원근법 적용)
+        self.mesh = go.Mesh3d(
+            x=x_coords,
+            y=y_coords,
+            z=z_coords,
+            i=i,
+            j=j,
+            k=k,
+            opacity=opacity,
+            color=color,
+            flatshading=True
+        )
+        return self.mesh
+
     def is_inside(self, x: float, y: float, z: float):
         return (self.x <= x <= self.x + self.width and
                 self.y <= y <= self.y + self.depth and
-                self.height <= z <= self.height)
+                0 <= z <= self.height)
 
 
 
@@ -126,9 +184,74 @@ class CylinderObstacle(Obstacle):
     def __str__(self):
         return f"CylinderCloud: {self.shape}"
 
+    def plotly_obj(self, opacity=1, color=None, n=100):
+        if self.mesh is not None:
+            return self.mesh
+
+        vertices = []
+        theta = np.linspace(0, 2*np.pi, n, endpoint=False)
+
+        for t in theta:
+            vertices.append([self.x + self.radius * np.cos(t), self.y + self.radius * np.sin(t), 0])
+        for t in theta:
+            vertices.append([self.x + self.radius * np.cos(t), self.y + self.radius * np.sin(t), self.height])
+
+        bottom_idx = len(vertices)
+        vertices.append([self.x, self.y, 0])
+        top_idx = len(vertices)
+        vertices.append([self.x, self.y, self.height])
+
+        i_side, j_side, k_side = [], [], []
+        i_bottom, j_bottom, k_bottom = [], [], []
+        i_top, j_top, k_top = [], [], []
+
+        for i in range(n):
+            next_i = (i + 1) % n
+
+            # 측면: 두 개의 삼각형으로 구성
+            i_side.append(i)
+            j_side.append(next_i)
+            k_side.append(n + i)
+
+            i_side.append(next_i)
+            j_side.append(n + next_i)
+            k_side.append(n + i)
+
+            # 바닥면: 중심 점과 인접 두 점으로 삼각형 생성
+            i_bottom.append(bottom_idx)
+            j_bottom.append(i)
+            k_bottom.append(next_i)
+
+            # 천정면: 중심 점과 인접 두 점으로 삼각형 생성 (정확한 법선 방향을 위해 순서 반대로)
+            i_top.append(top_idx)
+            j_top.append(n + next_i)
+            k_top.append(n + i)
+
+        i_total = i_side + i_bottom + i_top
+        j_total = j_side + j_bottom + j_top
+        k_total = k_side + k_bottom + k_top
+
+        x_coords = [v[0] for v in vertices]
+        y_coords = [v[1] for v in vertices]
+        z_coords = [v[2] for v in vertices]
+
+        self.mesh = go.Mesh3d(
+            x=x_coords,
+            y=y_coords,
+            z=z_coords,
+            i=i_total,
+            j=j_total,
+            k=k_total,
+            opacity=opacity,
+            color=color,
+            flatshading=True,
+            name='Cylinder'
+        )
+        return self.mesh
+
     def is_inside(self, x: float, y: float, z: float):
         return ((self.x - x)**2 + (self.y - y)**2 <= self.radius**2 and
-                self.height <= z <= self.height)
+                0 <= z <= self.height)
 
 
 class BlockageDataset(Dataset):

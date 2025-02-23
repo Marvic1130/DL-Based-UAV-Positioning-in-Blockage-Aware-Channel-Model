@@ -58,28 +58,28 @@ def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor):
     p1, p2, q = y_pred, x_batch, obst_points
 
     # v와 w의 차원 수정
-    v = p2 - p1.unsqueeze(1)  # [batch_size, 4, 3]
+    v = p2 - p1.unsqueeze(1)  # [batch_size, gn_num, 3]
     w = q.unsqueeze(0) - p1.unsqueeze(1)  # [batch_size, N_c, 3]
 
-    v_norm_squared = (v ** 2).sum(dim=2, keepdim=True)  # [batch_size, 4, 1]
-    dot_product = (v.unsqueeze(2) * w.unsqueeze(1)).sum(dim=3)  # [batch_size, 4, N_c]
+    v_norm_squared = (v ** 2).sum(dim=2, keepdim=True)  # [batch_size, gn_num, 1]
+    dot_product = (v.unsqueeze(2) * w.unsqueeze(1)).sum(dim=3)  # [batch_size, gn_num, N_c]
 
-    t = torch.clamp(dot_product / v_norm_squared, 0, 1)  # [batch_size, 4, N_c]
+    t = torch.clamp(dot_product / v_norm_squared, 0, 1)  # [batch_size, gn_num, N_c]
 
-    p = p1.unsqueeze(1).unsqueeze(2) + t.unsqueeze(-1) * v.unsqueeze(2)  # [batch_size, 4, N_c, 3]
+    p = p1.unsqueeze(1).unsqueeze(2) + t.unsqueeze(-1) * v.unsqueeze(2)  # [batch_size, gn_num, N_c, 3]
 
-    dist = torch.norm(p - q.unsqueeze(0).unsqueeze(0), dim=3)  # [batch_size, 4, N_c]
+    dist = torch.norm(p - q.unsqueeze(0).unsqueeze(0), dim=3)  # [batch_size, gn_num, N_c]
 
-    min_dist2obst = torch.min(dist, dim=2).values  # [batch_size, 4]
-    bk_val = torch.tanh(0.2 * min_dist2obst)  # [batch_size, 4]
+    min_dist2obst = torch.min(dist, dim=2).values  # [batch_size, gn_num]
+    bk_val = torch.tanh(0.2 * min_dist2obst)  # [batch_size, gn_num]
 
     norm = torch.norm(v, dim=2)  # [batch_size, 4]
-    chan_gain = bk_val * hp.beta_1 / norm + (1 - bk_val) * hp.beta_2 / (norm ** 1.65)  # [batch_size, 4]
+    chan_gain = bk_val * hp.beta_1 / norm + (1 - bk_val) * hp.beta_2 / (norm ** 1.65)  # [batch_size, gn_num]
 
-    snr = hp.P_AVG * chan_gain / hp.noise  # [batch_size, 4]
-    se = torch.log2(1 + snr)  # [batch_size, 4]
+    snr = hp.P_AVG * chan_gain / hp.noise  # [batch_size, gn_num]
+    se = torch.log2(1 + snr)  # [batch_size, gn_num]
 
-    return -torch.mean(se)\
+    return -torch.mean(se)
 
 def gn_mobility(init_x, init_y, init_vx, init_vy, num_steps,
                 obstacle_ls=None, dt=1.0, alpha=0.9, mu_x=0.0, mu_y=0.0, sigma=1.0, rand_seed=None):

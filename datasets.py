@@ -83,6 +83,7 @@ class CubeObstacle(Obstacle):
                     ]
         # concatenate all
         self.points = np.concatenate(__points, axis=1)
+        self.plotly_obj()
 
     @property
     def width(self):
@@ -96,7 +97,7 @@ class CubeObstacle(Obstacle):
         return f"CubeCloud: {self.shape}"
 
     def plotly_obj(self, opacity=1, color=None):
-        if self.mesh is not None:
+        if self.mesh is not None and (color is None or color == self.mesh.color) and opacity == self.mesh.opacity:
             return self.mesh
 
         vertices = [
@@ -176,6 +177,7 @@ class CylinderObstacle(Obstacle):
                       height * np.random.rand(s_num)])
         ]
         self.points = np.concatenate(__points, axis=1)
+        self.plotly_obj()
 
     @property
     def radius(self):
@@ -185,8 +187,11 @@ class CylinderObstacle(Obstacle):
         return f"CylinderCloud: {self.shape}"
 
     def plotly_obj(self, opacity=1, color=None, n=100):
-        if self.mesh is not None:
-            return self.mesh
+        if (self.mesh is not None and
+                self.mesh['theta_num'] == n and
+                (color is None or color == self.mesh['obj'].color) and
+                opacity == self.mesh['obj'].opacity):
+            return self.mesh['obj']
 
         vertices = []
         theta = np.linspace(0, 2*np.pi, n, endpoint=False)
@@ -235,7 +240,7 @@ class CylinderObstacle(Obstacle):
         y_coords = [v[1] for v in vertices]
         z_coords = [v[2] for v in vertices]
 
-        self.mesh = go.Mesh3d(
+        self.mesh = {"obj": go.Mesh3d(
             x=x_coords,
             y=y_coords,
             z=z_coords,
@@ -246,8 +251,8 @@ class CylinderObstacle(Obstacle):
             color=color,
             flatshading=True,
             name='Cylinder'
-        )
-        return self.mesh
+        ), 'theta_num': n}
+        return self.mesh['obj']
 
     def is_inside(self, x: float, y: float, z: float):
         return ((self.x - x)**2 + (self.y - y)**2 <= self.radius**2 and

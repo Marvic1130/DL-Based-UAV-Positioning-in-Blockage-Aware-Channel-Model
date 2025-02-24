@@ -15,6 +15,7 @@ from utils.config import Hyperparameters as hp
 
 random_seed = 42
 batch_size = 1024
+epochs = 500
 
 obstacle_ls = [
     CubeObstacle(-30, 25, 35, 60, 20, 0.1),
@@ -25,6 +26,11 @@ obstacle_ls = [
 ]
 
 if __name__ == '__main__':
+    
+    torch.manual_seed(random_seed)
+    np.random.seed(random_seed)
+    if hp.device == "cuda":
+        torch.cuda.manual_seed_all(random_seed)
 
     obst_points = []
     for obstacle in obstacle_ls:
@@ -32,8 +38,7 @@ if __name__ == '__main__':
 
     obst_points = torch.cat([op for op in obst_points], dim=1).mT.to(hp.device)
 
-    torch.manual_seed(random_seed)
-    np.random.seed(random_seed)
+    
 
     x = pd.read_csv('./data/dataset.csv')
     scaler_x = MinMaxScaler(feature_range=(0, 1))
@@ -51,10 +56,14 @@ if __name__ == '__main__':
     results = {lr: {"train_loss": [], "val_loss": []} for lr in lr_ls}
 
     for lr in lr_ls:
+        torch.manual_seed(random_seed)
+        np.random.seed(random_seed)
+        if hp.device == "cuda":
+            torch.cuda.manual_seed_all(random_seed)
 
         wandb.init(project="DL-based UAV Positioning", name=f"lr_test: {lr}", config={
             "batch_size": batch_size,
-            "epochs": 1000,
+            "epochs": epochs,
             "random_seed": random_seed,
             "learning_rates": lr
         })
@@ -65,7 +74,7 @@ if __name__ == '__main__':
 
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-        for epoch in trange(1000, desc=f"Training with lr={lr}"):
+        for epoch in trange(epochs, desc=f"Training with lr={lr}"):
             train_loss = 0.0
             model.train()
             for x in train_dataloader:

@@ -1,5 +1,7 @@
 import os
 import logging
+
+import plotly.io as pio
 import pandas as pd
 import torch
 from tqdm import tqdm
@@ -12,9 +14,8 @@ import wandb
 
 from datasets import CubeObstacle, CylinderObstacle, TrainDataset
 from model import Net
-from utils.tools import calc_loss
+from utils.tools import calc_loss, calc_sig_strength
 from utils.config import Hyperparameters as hp
-
 
 def train_pipeline(model, dataloader, optimizer, scaler, obst_points, device):
     total_loss = 0.0
@@ -52,12 +53,13 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
         device (torch.device): 사용 장치.
         **kwargs: 추가 인자.
             - mode: 'visual' 일 경우 시각화 활성화.
-            - num_epoch: 시각화를 몇 에폭마다 수행할지 정하는 값.
+
             - current_epoch: 현재 에폭 번호.
 
     Returns:
         float: 총 검증 손실.
     """
+    results_dict = {}
     total_loss = 0.0
     gn_num = kwargs.get('gn_num', 4)
     visual = kwargs.get('visual', False)
@@ -135,16 +137,16 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
                 xaxis=dict(range=[-100, 100], title='X axis'),
                 yaxis=dict(range=[-100, 100], title='Y axis'),
                 zaxis=dict(range=[0, 80], title='Z axis'),
-                camera=dict(eye=dict(x=1.5, y=1.5, z=1))
+                camera=dict(eye=dict(x=2, y=1.5, z=1))
             ),
             title=f"Epoch {current_epoch} Validation"
         )
-        wandb.log({"Validation": fig})
-        fig.show()
+        results_dict = {'fig': fig}
 
-    return total_loss
+    results_dict['val_loss'] = total_loss
+    return results_dict
 
-random_seed = 42
+random_seed = 0
 batch_size = 1024
 epochs = 10000
 lr = 5e-5
@@ -204,20 +206,30 @@ if __name__ == '__main__':
         train_loss = train_pipeline(model, train_dataloader, optimizer, scaler_x, obst_points, hp.device)
         visual = False
         if epoch % 500 == 0 or epoch == epochs-1: visual=True
-        val_loss = val_pipeline(model, val_dataloader, scaler_x, obst_points, hp.device, visual=visual, current_epoch=epoch, obstacle_ls=obstacle_ls)
+        val_result = val_pipeline(model, val_dataloader, scaler_x, obst_points, hp.device, visual=visual, current_epoch=epoch, obstacle_ls=obstacle_ls)
+        val_loss = val_result['val_loss']
         # 에폭별 평균 손실 기록
         train_loss /= len(train_dataloader)
         val_loss /= len(val_dataloader)
 
         if epoch % 500 == 0 or epoch == epochs - 1:
+            fig = val_result['fig']
+            wandb.log({
+                "fig": fig,
+                f"train_loss": train_loss,
+                f"val_loss": val_loss,
+                "epoch": epoch + 1
+            })
             checkpoint_path = os.path.join(save_dir, f"model_epoch_{epoch}.pt")
             torch.save(model.state_dict(), checkpoint_path)
             print(f"Model checkpoint saved at: {checkpoint_path}")
+            pio.write_json(fig,f'./results/train/fig{epoch}.json')
+            fig.show()
 
-        # wandb에 손실 로깅
-        wandb.log({
-            f"train_loss": train_loss,
-            f"val_loss": val_loss,
-            "epoch": epoch + 1
-        })
+        else:
+            wandb.log({
+                f"train_loss": train_loss,
+                f"val_loss": val_loss,
+                "epoch": epoch + 1
+            })
     wandb.finish()

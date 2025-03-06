@@ -146,7 +146,7 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
     results_dict['val_loss'] = total_loss
     return results_dict
 
-random_seed = 0
+random_seed = 42
 batch_size = 1024
 epochs = 10000
 lr = 5e-5
@@ -224,7 +224,7 @@ if __name__ == '__main__':
             torch.save(model.state_dict(), checkpoint_path)
             print(f"Model checkpoint saved at: {checkpoint_path}")
             pio.write_json(fig,f'./results/train/fig{epoch}.json')
-            fig.show()
+            # fig.show() 
 
         else:
             wandb.log({

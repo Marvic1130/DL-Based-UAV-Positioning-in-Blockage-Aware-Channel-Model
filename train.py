@@ -17,7 +17,22 @@ from model import Net
 from utils.tools import calc_loss, calc_sig_strength
 from utils.config import Hyperparameters as hp
 
-def train_pipeline(model, dataloader, optimizer, scaler, obst_points, device):
+def train_pipeline(model, dataloader, optimizer, scaler, obst_points, device, **kwargs):
+    """
+
+    :param model:
+    :param dataloader:
+    :param optimizer:
+    :param scaler:
+    :param obst_points:
+    :param device:
+    :param kwargs:
+    :return: total_loss
+
+    kwargs:
+    - height: height of the environment
+    """
+    height = kwargs.get('height', 70)/100
     total_loss = 0.0
     model.train()
     for x in tqdm(dataloader, desc="Training"):
@@ -32,7 +47,7 @@ def train_pipeline(model, dataloader, optimizer, scaler, obst_points, device):
         )
         # y_pred에 고정 값 0.7을 추가하고 스케일 변환
         y_pred = torch.hstack(
-            (y_pred, torch.ones(y_pred.shape[0], 1, device=device) * 0.7)
+            (y_pred, torch.ones(y_pred.shape[0], 1, device=device) * height)
         ) * 100
         loss = calc_loss(y_pred, x_reshaped, obst_points)
         loss.backward()
@@ -101,6 +116,7 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
                 gn_coords.append(x_reshaped.cpu().numpy())
 
     if visual and len(preds) > 0:
+        results_dict['gn_coords'] = gn_coords
         line = [go.Scatter3d(
             x=[gn_coords[0][0, i, 0], preds[0][0][0]],
             y=[gn_coords[0][0, i, 1], preds[0][0][1]],

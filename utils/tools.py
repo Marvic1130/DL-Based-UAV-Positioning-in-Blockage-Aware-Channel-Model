@@ -81,73 +81,46 @@ def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor):
 
     return -torch.mean(se)
 
-def gn_mobility(init_x, init_y, init_vx, init_vy, num_steps,
-                obstacle_ls=None, dt=1.0, alpha=0.9, mu_x=0.0, mu_y=0.0, sigma=1.0, rand_seed=None):
+def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: float = 11.95, a_2: float = 0.14,
+                                chunk_size: int = 1000, device: str = 'cpu'):
     """
-        Gauss-Markov 모빌리티 모델로 2차원 공간의 이동 궤적을 생성.
+    :param gn_tensor: gn_tensor size: (gn_num, 3)
+    :param height: height of the UAV
+    :param a_1: a_1 parameter
+    :param a_2: a_2 parameter
+    :param chunk_size: chunk size
+    :param device: device
 
-        매개변수:
-        ----------
-        init_x, init_y : float
-            초기 위치 (x, y)
-        init_vx, init_vy : float
-            초기 속도 (vx, vy)
-        num_steps : int
-            시뮬레이션할 총 스텝(시간 단계) 수
-        obstacle_ls : list
-            장애물 리스트
-        dt : float
-            한 스텝에서 진행되는 시간 간격 (Δt)
-        alpha : float
-            모멘텀(기억) 계수 (0 <= alpha <= 1). 클수록 이전 속도의 영향이 큼
-        mu_x, mu_y : float
-            x,y 축 방향 목표(평균) 속도
-        sigma : float
-            가우시안 노이즈 표준편차 (속도 변동 폭)
-        random_seed : int or None
-            난수 시드를 고정할 때 사용. None일 경우 고정 안 함.
+    :return: se: spectral efficiency (n, m) shape matrix
+    """
+    x = torch.arange(-100, 100.01, 0.01, device=device)
+    y = torch.arange(-100, 100.01, 0.01, device=device)
+    X, Y = torch.meshgrid(x, y, indexing='ij')
+    Z = torch.full_like(X, height, device=device)
+    grid = torch.stack([X, Y, Z], dim=-1)
+    n, m, _ = grid.shape
 
-        반환값:
-        ----------
-        positions : np.ndarray
-            (num_steps, 2) 형태의 위치(x, y) 배열
-        velocities : np.ndarray
-            (num_steps, 2) 형태의 속도(vx, vy) 배열
-        """
-    if obstacle_ls is not None:
-        if any(obstacle.is_inside(init_x, init_y, 0) for obstacle in obstacle_ls):
-            raise ValueError("Initial position is inside obstacles")
+    results = []
 
-    if rand_seed is not None:
-        np.random.seed(rand_seed)
+    for i in range(0, n, chunk_size):
+        grid_chunk = grid[i: i + chunk_size]
+        grid_chunk = grid_chunk.unsqueeze(2)  # 이제 shape: (chunk_size, m, 1, 3)
+        gn_expanded = gn_tensor.unsqueeze(0).unsqueeze(0)
 
-    positions = np.zeros((num_steps,2))
-    velocities = np.zeros((num_steps, 2))
+        diff = gn_expanded - grid_chunk
+        dist = torch.norm(diff, dim=-1)  # shape: (chunk_size, m, 4)
+        horizontal_dist = torch.sqrt(diff[..., 0] ** 2 + diff[..., 1] ** 2)  # shape: (chunk_size, m, 4)
+        tanval = (180 / torch.pi) * torch.atan(diff[..., 2] / horizontal_dist)  # shape: (chunk_size, m, 4)
 
-    x, y = init_x, init_y
-    vx, vy = init_vx, init_vy
+        P_LOS = 1 / (1 + a_1 * torch.exp(-a_2 * (tanval - a_1)))  # shape: (chunk_size, m, 4)
+        chan_gain = P_LOS * hp.beta_1 / dist + (1 - P_LOS) * hp.beta_2 / (dist ** 1.35)
 
-    positions[0] = (x, y)
-    velocities[0] = (vx, vy)
+        snr = hp.P_AVG * chan_gain / hp.noise
+        se = torch.log2(1 + snr)  # shape: (chunk_size, m, 4)
 
-    for i in range(num_steps-1):
-        while True:
-            wx = np.random.randn()
-            wy = np.random.randn()
+        se_mean = se.mean(dim=-1)
+        results.append(se_mean.cpu())
 
-            next_vx = alpha * vx + (1 - alpha) * mu_x + np.sqrt(1 - alpha ** 2) * sigma * wx
-            next_vy = alpha * vy + (1 - alpha) * mu_y + np.sqrt(1 - alpha ** 2) * sigma * wy
 
-            temp_x = positions[i][0] + next_vx * dt
-            temp_y = positions[i][1] + next_vy * dt
-
-            if obstacle_ls is None: break
-
-            if any(obstacle.is_inside(temp_x, temp_y, 0) for obstacle in obstacle_ls):
-                continue
-            else: break
-
-        positions[i+1] = (temp_x, temp_y)
-        velocities[i+1] = (next_vx, next_vy)
-
-    return positions, velocities
+    result_se = torch.cat(results, dim=0)
+    return result_se

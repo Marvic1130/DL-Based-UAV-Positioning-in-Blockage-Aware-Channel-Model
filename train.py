@@ -33,13 +33,14 @@ def train_pipeline(model, dataloader, optimizer, scaler, obst_points, device, **
     - height: height of the environment
     """
     height = kwargs.get('height', 70)/100
+    gn_num = kwargs.get('gn_num', 4)
     total_loss = 0.0
     model.train()
     for x in tqdm(dataloader, desc="Training"):
         optimizer.zero_grad()
         y_pred = model(x)
         # 원본 데이터 복원 후 (4, 2) 형태로 재구성
-        x_reshaped = torch.tensor(scaler.inverse_transform(x.cpu()), device=device, dtype=torch.float32).view(-1, 4, 2)
+        x_reshaped = torch.tensor(scaler.inverse_transform(x.cpu()), device=device, dtype=torch.float32).view(-1, gn_num, 2)
         # z 좌표(높이)는 0으로 채움
         x_reshaped = torch.cat(
             (x_reshaped, torch.zeros((x_reshaped.shape[0], x_reshaped.shape[1], 1), device=device)),

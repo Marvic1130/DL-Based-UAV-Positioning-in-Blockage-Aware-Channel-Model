@@ -117,7 +117,6 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
                 gn_coords.append(x_reshaped.cpu().numpy())
 
     if visual and len(preds) > 0:
-        results_dict['gn_coords'] = gn_coords
         line = [go.Scatter3d(
             x=[gn_coords[0][0, i, 0], preds[0][0][0]],
             y=[gn_coords[0][0, i, 1], preds[0][0][1]],
@@ -158,7 +157,8 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
             ),
             title=f"Epoch {current_epoch} Validation"
         )
-        results_dict = {'fig': fig}
+        results_dict = {'fig': fig,
+                        'gn_coords': gn_coords}
 
     results_dict['val_loss'] = total_loss
     return results_dict

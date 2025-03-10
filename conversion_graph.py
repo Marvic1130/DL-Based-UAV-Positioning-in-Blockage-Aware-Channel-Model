@@ -42,7 +42,8 @@ if __name__ == '__main__':
 
     x = pd.read_csv('./data/dataset.csv')
     scaler_x = MinMaxScaler(feature_range=(0, 1))
-    x_scaled = scaler_x.fit_transform(x)
+    scaler_x.fit(np.ones((2, x.shape[1]), dtype=np.float32)*np.array([[-100, 100]]).mT)
+    x_scaled = scaler_x.transform(x)
 
     x_train, x_val = train_test_split(x_scaled, test_size=0.2, random_state=random_seed)
 

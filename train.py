@@ -81,6 +81,7 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
     visual = kwargs.get('visual', False)
     current_epoch = kwargs.get('current_epoch', None)
     obstacle_ls = kwargs.get('obstacle_ls', None)
+    height = kwargs.get('height', 70) / 100
 
     # mode가 'visual'이고, current_epoch와 num_epoch가 주어졌으며, current_epoch가 num_epoch의 배수면 시각화 수행
     if visual:
@@ -107,7 +108,7 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
             )
             # y_pred에 고정값 0.7을 추가한 후 스케일 변환
             y_pred = torch.hstack(
-                (y_pred, torch.ones(y_pred.shape[0], 1, device=device) * 0.7)
+                (y_pred, torch.ones(y_pred.shape[0], 1, device=device) * height)
             ) * 100
 
             total_loss += calc_loss(y_pred, x_reshaped, obst_points).item()

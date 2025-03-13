@@ -121,6 +121,5 @@ def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: floa
         se_mean = se.mean(dim=-1)
         results.append(se_mean.cpu())
 
-
     result_se = torch.cat(results, dim=0)
     return result_se

@@ -260,19 +260,19 @@ class CylinderObstacle(Obstacle):
 
 
 class BlockageDataset(Dataset):
-    def __init__(self, data_num:int, obstacle_ls: list[Obstacle], gnd_num: int = 4, dtype=torch.float32):
+    def __init__(self, data_num:int, obstacle_ls: list[Obstacle], gnd_num: int = 4, dtype=torch.float32, **kwargs):
         super(BlockageDataset, self).__init__()
+        grid_step = kwargs.get('grid_step', 10)
+        height = kwargs.get('height', 70)
         self.data_num = data_num
-
+        
         # Generate station positions
-        X, Y = np.meshgrid(
-            np.arange(-hp.area_size // 2, hp.area_size // 2),
-            np.arange(-hp.area_size // 2, hp.area_size // 2),
-            indexing='xy'
-        )
-        Z = np.full_like(X, 70)
-        self.station_pos = torch.tensor(np.stack((X, Y, Z), axis=-1).reshape(-1, 3), dtype=dtype)
-
+        x = torch.arange(-100, 100.01, grid_step, device=hp.device)
+        y = torch.arange(-100, 100.01, grid_step, device=hp.device)
+        X, Y = torch.meshgrid(x, y, indexing='ij')
+        Z = torch.full_like(X, height, device=hp.device)
+        self.station_pos = torch.stack([X, Y, Z], dim=-1).reshape(-1, 3)
+        self.grid_shape = (x.shape[0], y.shape[0])
         # Generate ground nodes
         self.gnd_nodes = torch.zeros((data_num, gnd_num, 3), dtype=dtype)
         for i in trange(data_num):

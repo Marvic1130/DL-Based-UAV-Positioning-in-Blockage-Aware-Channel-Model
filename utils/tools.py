@@ -93,8 +93,8 @@ def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: floa
 
     :return: se: spectral efficiency (n, m) shape matrix
     """
-    x = torch.arange(-100, 100.01, 0.01, device=device)
-    y = torch.arange(-100, 100.01, 0.01, device=device)
+    x = torch.arange(-100, 100.01, 0.1, device=device)
+    y = torch.arange(-100, 100.01, 0.1, device=device)
     X, Y = torch.meshgrid(x, y, indexing='ij')
     Z = torch.full_like(X, height, device=device)
     grid = torch.stack([X, Y, Z], dim=-1)

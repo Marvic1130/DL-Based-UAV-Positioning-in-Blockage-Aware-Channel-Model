@@ -28,23 +28,25 @@ end
 
 % 각 서브플롯에 대해 plotScene 호출
 % 예시: 첫 행은 height 50, 두번째 행은 height 70 (여기서는 같은 데이터 사용)
-plotScene(ax(1,1), 'mesh_', 0:4, gnd, uav_pos1, [-100,100], [-100,100], [0,100], [30,45]);
+plotScene2(ax(1,1), 'mesh_', 0:4, gnd, uav_pos1, [-100,100], [-100,100], [0,100], [30,45]);
 title(ax(1,1), 'height=50, az=30, el=45');
 
-plotScene(ax(1,2), 'mesh_', 0:4, gnd, uav_pos1, [-100,100], [-100,100], [0,100], [280,10]);
+plotScene2(ax(1,2), 'mesh_', 0:4, gnd, uav_pos1, [-100,100], [-100,100], [0,100], [280,10]);
 title(ax(1,2), 'height=50, az=280, el=10');
 
-plotScene(ax(1,3), 'mesh_', 0:4, gnd, uav_pos1, [-100,100], [-100,100], [0,100], [0,90]);
+plotScene2(ax(1,3), 'mesh_', 0:4, gnd, uav_pos1, [-100,100], [-100,100], [0,100], [0,90]);
 title(ax(1,3), 'height=50, az=0, el=90');
 
-plotScene(ax(2,1), 'mesh_', 0:4, gnd, uav_pos2, [-100,100], [-100,100], [0,100], [30,45]);
+plotScene2(ax(2,1), 'mesh_', 0:4, gnd, uav_pos2, [-100,100], [-100,100], [0,100], [30,45]);
 title(ax(2,1), 'height=70, az=30, el=45');
 
-plotScene(ax(2,2), 'mesh_', 0:4, gnd, uav_pos2, [-100,100], [-100,100], [0,100], [280,10]);
+plotScene2(ax(2,2), 'mesh_', 0:4, gnd, uav_pos2, [-100,100], [-100,100], [0,100], [280,10]);
 title(ax(2,2), 'height=70, az=280, el=10');
 
-plotScene(ax(2,3), 'mesh_', 0:4, gnd, uav_pos2, [-100,100], [-100,100], [0,100], [0,90]);
+plotScene2(ax(2,3), 'mesh_', 0:4, gnd, uav_pos2, [-100,100], [-100,100], [0,100], [0,90]);
 title(ax(2,3), 'height=70, az=0, el=90');
 
 % 전체 figure 공통 제목 추가
 sgtitle('3D Mesh Scenes with UAV-Ground Connections');
+
+exportgraphics(gcf, 'high_res_figure2.png', 'Resolution', 2400);

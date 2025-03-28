@@ -15,7 +15,7 @@ from utils.config import Hyperparameters as hp
 
 random_seed = 42
 batch_size = 1024
-epochs = 500
+epochs = 1000
 
 obstacle_ls = [
     CubeObstacle(-30, 25, 35, 60, 20, 0.1),
@@ -37,8 +37,6 @@ if __name__ == '__main__':
         obst_points.append(torch.tensor(obstacle.points, dtype=torch.float32))
 
     obst_points = torch.cat([op for op in obst_points], dim=1).mT.to(hp.device)
-
-    
 
     x = pd.read_csv('./data/dataset.csv')
     scaler_x = MinMaxScaler(feature_range=(0, 1))
@@ -89,7 +87,7 @@ if __name__ == '__main__':
                     (x_reshaped, torch.zeros((x_reshaped.shape[0], x_reshaped.shape[1], 1), device=hp.device)), dim=-1)
 
                 # y_pred 수정 및 손실 계산
-                y_pred = torch.hstack((y_pred, torch.ones(y_pred.shape[0], 1, device=hp.device) * 0.7)) * 100
+                y_pred = torch.hstack((y_pred * hp.area_size - hp.area_size/2, torch.ones(y_pred.shape[0], 1, device=hp.device) * 70))
                 loss = calc_loss(y_pred, x_reshaped, obst_points)
                 loss.backward()
                 optimizer.step()
@@ -106,7 +104,7 @@ if __name__ == '__main__':
                     x_reshaped = torch.cat(
                         (x_reshaped, torch.zeros((x_reshaped.shape[0], x_reshaped.shape[1], 1), device=hp.device)),
                         dim=-1)
-                    y_pred = torch.hstack((y_pred, torch.ones(y_pred.shape[0], 1, device=hp.device) * 0.7)) * 100
+                    y_pred = torch.hstack((y_pred * hp.area_size - hp.area_size/2, torch.ones(y_pred.shape[0], 1, device=hp.device) * 70))
                     val_loss += calc_loss(y_pred, x_reshaped, obst_points).item()
 
             # 에폭별 평균 손실 기록

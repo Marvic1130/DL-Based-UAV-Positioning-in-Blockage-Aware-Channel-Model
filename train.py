@@ -36,7 +36,7 @@ def train_pipeline(model, dataloader, optimizer, scaler, obst_points, device, **
     gn_num = kwargs.get('gn_num', 4)
     total_loss = 0.0
     model.train()
-    for x in tqdm(dataloader, desc="Training"):
+    for x in dataloader:
         optimizer.zero_grad()
         y_pred = model(x)
         # 원본 데이터 복원 후 (4, 2) 형태로 재구성
@@ -98,7 +98,7 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
 
     model.eval()
     with torch.no_grad():
-        for x in tqdm(dataloader, desc="Validation"):
+        for x in dataloader:
             y_pred = model(x)
             x_reshaped = torch.tensor(scaler.inverse_transform(x.cpu()),
                                       device=device, dtype=torch.float32).view(-1, gn_num, 2)
@@ -167,7 +167,7 @@ def val_pipeline(model, dataloader, scaler, obst_points, device, **kwargs):
 random_seed = 42
 batch_size = 1024
 epochs = 10000
-lr = 5e-5
+lr = 1e-4
 
 save_dir = "./models/train_model"
 os.makedirs(save_dir, exist_ok=True)

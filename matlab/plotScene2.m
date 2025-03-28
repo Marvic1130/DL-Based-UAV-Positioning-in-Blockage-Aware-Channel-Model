@@ -1,6 +1,5 @@
-function plotScene(ax, stlPrefix, stlIndices, gnd, ...
-    bf, prob, cent, dl, ...
-    xlimVal, ylimVal, zlimVal, viewAngles)
+function plotScene2(ax, stlPrefix, stlIndices, gnd, ...
+    uav, xlimVal, ylimVal, zlimVal, viewAngles)
 % plotScene: 지정한 축(ax)에 STL 메쉬들을 불러와 표시하고, 
 %            gnd (ground points)와 uav_pos (UAV 위치)를 scatter로 표시한 후,
 %            UAV와 각 gnd 포인트 사이에 선을 그려 3D 씬을 구성합니다.
@@ -44,26 +43,17 @@ function plotScene(ax, stlPrefix, stlIndices, gnd, ...
         % 각 메쉬를 patch로 표시, tab10 색상을 순서대로 사용
         patch(ax, 'Faces', fv.ConnectivityList, 'Vertices', fv.Points, ...
               'FaceColor', 'flat', 'FaceVertexCData', tab10(mod(i,10)+1, :), ...
-              'EdgeColor', 'none', 'FaceAlpha', 0.5);
+              'EdgeColor', 'none', 'FaceAlpha', 0.8);
     end
     
     % Ground와 UAV scatter 추가
     scatter3(ax, gnd(1,:), gnd(2,:), gnd(3,:), 50, 'r', 'filled');
-    scatter3(ax, bf(1), bf(2), bf(3), 50, 'g', 'filled');
-    scatter3(ax, prob(1), prob(2), prob(3), 50, 'b', 'filled');
-    scatter3(ax, cent(1), cent(2), cent(3), 50, 'y', 'filled');
-    scatter3(ax, dl(1), dl(2), dl(3), 50, 'm', 'filled');
+    scatter3(ax, uav(1), uav(2), uav(3), 50, 'g', 'filled');
     
     % UAV와 각 gnd 포인트 사이에 선 그리기
     for k = 1:size(gnd,2)
-        plot3(ax, [bf(1) gnd(1,k)], [bf(2) gnd(2,k)], [bf(3) gnd(3,k)], ...
+        plot3(ax, [uav(1) gnd(1,k)], [uav(2) gnd(2,k)], [uav(3) gnd(3,k)], ...
               'g-', 'LineWidth', 2);
-        plot3(ax, [prob(1) gnd(1,k)], [prob(2) gnd(2,k)], [prob(3) gnd(3,k)], ...
-              'b-', 'LineWidth', 2);
-        plot3(ax, [cent(1) gnd(1,k)], [cent(2) gnd(2,k)], [cent(3) gnd(3,k)], ...
-              'y-', 'LineWidth', 2);
-        plot3(ax, [dl(1) gnd(1,k)], [dl(2) gnd(2,k)], [dl(3) gnd(3,k)], ...
-              'm-', 'LineWidth', 2);
     end
     
     % 조명 및 시각적 효과 설정
@@ -83,4 +73,3 @@ function plotScene(ax, stlPrefix, stlIndices, gnd, ...
     
     hold(ax, 'off');
 end
-

@@ -1,9 +1,8 @@
 import numpy as np
 import torch
-from sympy.physics.units import velocity
 from torch import Tensor
 
-from utils.config import Hyperparameters as hp
+from utils.config import config as config
 from datasets import Obstacle
 
 def calc_dist(p1: np.ndarray, p2: np.ndarray, q: np.ndarray):
@@ -14,7 +13,7 @@ def calc_dist(p1: np.ndarray, p2: np.ndarray, q: np.ndarray):
     return distances
 
 
-def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: list[Obstacle]):
+def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: list[Obstacle], cfg: config = config.default()):
     num_gn = gn_pos.shape[0]
     sig = np.zeros(num_gn)
 
@@ -25,8 +24,8 @@ def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: list[Obst
         min_dist2obst = np.array([np.min(calc_dist(station_pos, gn_pos[i], obst[j].points)) for j in range(len(obst))])
 
         bk_val = np.tanh(0.2 * np.min(min_dist2obst))
-        chan_gain = bk_val * hp.beta_1 / dist + (1 - bk_val) * hp.beta_2 / (dist ** 1.65)
-        snr = hp.P_AVG * chan_gain / hp.noise
+        chan_gain = bk_val * cfg.beta_1 / dist + (1 - bk_val) * cfg.beta_2 / (dist ** 1.65)
+        snr = cfg.power * chan_gain / cfg.noise
         se = np.log2(1 + snr)
         sig[i] = se
 
@@ -42,19 +41,19 @@ def calc_dist_gpu(p1: Tensor, p2: Tensor, q: Tensor):
     dist = torch.norm(p - q[None, None, :, :], dim=3)
     return dist
 
-def calc_sig_strength_gpu(station_pos: Tensor, gn_pos: Tensor, obst: Tensor):
+def calc_sig_strength_gpu(station_pos: Tensor, gn_pos: Tensor, obst: Tensor, cfg: config=config.default()):
     dist = calc_dist_gpu(station_pos, gn_pos, obst)
     bk_val = torch.tanh(torch.min(dist, dim=-1).values*0.2)
 
     norm = torch.norm(station_pos.unsqueeze(1) - gn_pos.unsqueeze(0), dim=-1)
-    chan_gain = bk_val * hp.beta_1 / norm + (1 - bk_val) * hp.beta_2 / (norm ** 1.65)
+    chan_gain = bk_val * cfg.beta_1 / norm + (1 - bk_val) * cfg.beta_2 / (norm ** 1.65)
 
-    snr = hp.P_AVG * chan_gain / hp.noise
+    snr = cfg.power * chan_gain / cfg.noise
     se = torch.log2(1 + snr) # Data rate, Spectral Efficiency
     
     return torch.mean(se, dim=1)
 
-def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor):
+def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor, cfg: config=config.default()):
     p1, p2, q = y_pred, x_batch, obst_points
 
     # v와 w의 차원 수정
@@ -74,15 +73,15 @@ def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor):
     bk_val = torch.tanh(0.2 * min_dist2obst)  # [batch_size, gn_num]
 
     norm = torch.norm(v, dim=2)  # [batch_size, 4]
-    chan_gain = bk_val * hp.beta_1 / norm + (1 - bk_val) * hp.beta_2 / (norm ** 1.65)  # [batch_size, gn_num]
+    chan_gain = bk_val * cfg.beta_1 / norm + (1 - bk_val) * cfg.beta_2 / (norm ** 1.65)  # [batch_size, gn_num]
 
-    snr = hp.P_AVG * chan_gain / hp.noise  # [batch_size, gn_num]
+    snr = cfg.power * chan_gain / cfg.noise  # [batch_size, gn_num]
     se = torch.log2(1 + snr)  # [batch_size, gn_num]
 
     return -torch.mean(se)
 
 def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: float = 11.95, a_2: float = 0.14,
-                                chunk_size: int = 1000, device: str = 'cpu'):
+                                chunk_size: int = 1000, device: str = 'cpu', cfg: config=config.default()):
     """
     :param gn_tensor: gn_tensor size: (gn_num, 3)
     :param height: height of the UAV
@@ -113,9 +112,9 @@ def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: floa
         tanval = (180 / torch.pi) * torch.atan(diff[..., 2] / horizontal_dist)  # shape: (chunk_size, m, 4)
 
         P_LOS = 1 / (1 + a_1 * torch.exp(-a_2 * (tanval - a_1)))  # shape: (chunk_size, m, 4)
-        chan_gain = P_LOS * hp.beta_1 / dist + (1 - P_LOS) * hp.beta_2 / (dist ** 1.35)
+        chan_gain = P_LOS * cfg.beta_1 / dist + (1 - P_LOS) * cfg.beta_2 / (dist ** 1.35)
 
-        snr = hp.P_AVG * chan_gain / hp.noise
+        snr = cfg.power * chan_gain / cfg.noise
         se = torch.log2(1 + snr)  # shape: (chunk_size, m, 4)
 
         se_mean = se.mean(dim=-1)

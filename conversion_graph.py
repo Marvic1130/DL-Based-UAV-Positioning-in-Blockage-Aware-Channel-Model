@@ -1,8 +1,6 @@
 import torch
 from tqdm import trange
-import numpy as np
-from torch.utils.data import Dataset, DataLoader
-from sklearn.preprocessing import MinMaxScaler
+from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import wandb
 
@@ -10,7 +8,6 @@ from datasets import TrainDataset, BlockageDataset
 from obstacles import create_obstacle_data
 from model import Net
 from train import train_pipeline, val_pipeline
-from utils.tools import calc_loss
 from utils.config import Config, set_random_seed
 
 if __name__ == '__main__':
@@ -18,10 +15,8 @@ if __name__ == '__main__':
     cfg = Config.lr_test()
     set_random_seed(cfg)
     obstacle_ls, obst_tensor = create_obstacle_data()
-    x = BlockageDataset(cfg.num_samples, obstacle_ls=obstacle_ls, cfg=cfg).gnd_nodes[:, :, :2].reshape(-1, cfg.num_users*2)
-    scaler_x = MinMaxScaler(feature_range=(0, 1))
-    scaler_x.fit(np.ones((2, x.shape[1]), dtype=np.float32)*np.array([[-cfg.area_size//2, cfg.area_size//2]]).mT)
-    x_scaled = scaler_x.transform(x)
+    x = BlockageDataset(cfg.num_samples, obstacle_ls=obstacle_ls, cfg=cfg).gnd_nodes[:, :, :2].reshape(-1, cfg.num_users*2).cpu()
+    x_scaled = cfg.scaler.transform(x)
 
     x_train, x_val = train_test_split(x_scaled, test_size=0.2, random_state=cfg.random_seed)
 

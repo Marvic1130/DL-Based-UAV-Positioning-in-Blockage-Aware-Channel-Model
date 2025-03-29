@@ -6,7 +6,6 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PathCollection
 from utils.config import Config
 
-
 class Obstacle:
     """
     Abstract base class representing a generic obstacle.
@@ -52,7 +51,7 @@ class Obstacle:
         Plot the obstacle points using matplotlib.
 
         :param ax: A matplotlib Axes object on which to plot the points.
-        :return: The scatter plot object.
+        :return: The scatter plot object (PathCollection).
         """
         return ax.scatter(self.points[0], self.points[1], self.points[2])
 
@@ -372,19 +371,23 @@ class CylinderObstacle(Obstacle):
                 0 <= z <= self.height)
 
 
-def create_obstacle_data(dot_num: float = 0.05, device: torch.device = Config.default().device,
+def create_obstacle_data(dot_num: float = 0.05, cfg: Config = Config.default(),
                          return_type: str = "both"):
     """
-    Create obstacle data.
+    Create obstacle data based on the given configuration.
 
-    :param dot_num: Density factor for generating points on faces (default: 0.05).
-    :param device: The torch.device on which to allocate the obstacle points tensor (default: CPU).
-    :param return_type: Specifies what to return:
-                        "list" returns only the list of obstacle instances,
-                        "tensor" returns only the obstacle points tensor,
-                        "both" returns a tuple of (obstacle list, obstacle tensor).
+    This function generates a list of obstacle instances (both cubes and cylinders)
+    with a specified dot density (dot_num). It then converts the obstacle point data into
+    a torch.Tensor and returns the data in a format specified by return_type.
+
+    :param dot_num: Density factor for generating obstacle points (default: 0.05).
+    :param cfg: A Config instance containing environment settings.
+    :param return_type: Specifies the return format:
+                        - "list": Return only the list of obstacle instances.
+                        - "tensor": Return only the concatenated obstacle points tensor.
+                        - "both": Return a tuple (obstacle list, obstacle tensor).
                         (default: "both")
-    :return: Depending on return_type, returns either the obstacle list, the tensor, or both.
+    :return: Depending on return_type, returns the obstacle list, the tensor, or both.
     """
     obstacle_ls = [
         CubeObstacle(-30, 35, 40, 80, 40, dot_num=dot_num),
@@ -397,7 +400,7 @@ def create_obstacle_data(dot_num: float = 0.05, device: torch.device = Config.de
     ]
 
     obst_points = torch.cat([torch.tensor(obstacle.points, dtype=torch.float32)
-                               for obstacle in obstacle_ls], dim=1).mT.to(device)
+                               for obstacle in obstacle_ls], dim=1).mT.to(cfg.device)
 
     return {
         "list": obstacle_ls,

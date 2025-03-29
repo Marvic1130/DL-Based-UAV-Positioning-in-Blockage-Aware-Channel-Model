@@ -1,207 +1,162 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict, astuple
+from typing import Dict, Any
+import numpy as np
 import torch
+from sklearn.preprocessing import MinMaxScaler
 
 @dataclass
-class config:
+class Config:
+    """
+    Configuration settings for model training and UAV environment.
+
+    Attributes:
+        device (torch.device): Computation device ('cuda', 'mps', or 'cpu').
+        hidden_N (int): Number of neurons in hidden layers.
+        hidden_L (int): Number of hidden layers in the neural network.
+        lr (float): Learning rate.
+        random_seed (int): Random seed for reproducibility.
+        batch (int): Batch size for training.
+        epochs (int): Number of training epochs.
+        num_users (int): Number of ground users.
+        area_size (int): Size of the UAV environment area.
+        beta_1 (float): LoS channel parameter.
+        beta_2 (float): NLoS channel parameter.
+        noise (float): Noise level.
+        power (float): Transmission power.
+        tanh_val (float): Hyper tangent value parameter.
+        num_samples (int): Number of samples for the dataset.
+        test_samples (int): Number of samples for testing.
+    """
     device: torch.device = torch.device('cuda' if torch.cuda.is_available() else
-                                          'mps' if torch.backends.mps.is_available() else 'cpu')
+                                        'mps' if torch.backends.mps.is_available() else 'cpu')
+
     # Model settings
-    batch: int = 256
-    epochs: int = 1000
     hidden_N: int = 1024  # Number of neurons in hidden layers
-    hidden_L: int = 4     # Number of hidden layers in the neural network
-    lr: float = 1e-4     # Learning rate
+    hidden_L: int = 4  # Number of hidden layers in the neural network
+
+    # Training settings
+    lr: float = 1e-4  # Learning rate
+    random_seed: int = 42
+    batch: int = 1024  # Batch size for training
+    epochs: int = 1000
 
     # UAV and environment settings
-    num_node: int = 4     # Number of ground nodes
+    num_users: int = 4  # Number of ground nodes
     area_size: int = 200
+    height: int = 70
 
     # Channel settings
     beta_1: float = 10 ** (-4.643)  # LoS
     beta_2: float = 10 ** (-5.643)  # NLoS
     noise: float = 10 ** (-10.7)
     power: float = 1.0
-    
-    tan_val: float = 0.2
+
+    tanh_val: float = 0.2
 
     # Dataset settings
     num_samples: int = 500000
+    test_samples: int = 10000
+
+    scaler = MinMaxScaler(feature_range=(0, 1))
+
+    # Test settings
+    test_list: list[Any] = None
+
+    def __post_init__(self):
+        self.scaler.fit(
+            np.ones((2, 2 * self.num_users), dtype=np.float32) *
+            np.array([[-self.area_size // 2, self.area_size // 2]]).T
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        :return: A dictionary representation of the configuration.
+        """
+        return asdict(self)
+
+    def to_tuple(self) -> tuple[Any]:
+        """
+        :return: A tuple representation of the configuration.
+        """
+        return astuple(self)
+
+    def __str__(self) -> str:
+        """
+        :return: A string representation of the configuration.
+        """
+        return str(asdict(self))
+
+    def replace(self, **kwargs) -> 'Config':
+        """
+        Replace the attributes of the configuration.
+
+        :param kwargs: Attributes to replace.
+        :return: A new Config instance with the replaced attributes.
+        """
+        return Config(**{**self.to_dict(), **kwargs})
+
+    ################## Configure the default settings. ##################
 
     @classmethod
     def default(cls):
+        """
+        Return the default configuration.
+
+        :return: A Config instance with default values.
+        """
         return cls()
 
-# 사용 예시
-if __name__ == "__main__":
-    cfg = config.default()
-    print(cfg)
+    ################## Config generator for testing learning rates. ##################
+    @classmethod
+    def lr_test(cls):
+        """
+        Config for testing learning rates.
 
-    
-    
-    
-# class _Hyperparameters:
-#     def __init__(self):
-#         try:
-#             with open('utils/config.yaml', 'r') as file:
-#                 config = yaml.safe_load(file)
-#         except FileNotFoundError:
-#             raise Exception("Configuration file not found.")
-#         except yaml.YAMLError:
-#             raise Exception("Error parsing YAML file.")
+        :return: A Config instance for testing learning rates.
+        """
+        return cls(num_samples=100000, epochs=1000, test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
 
-#         # Model settings
-#         if config['device'] == 'auto':
-#             config['device'] = torch.device('cuda' if torch.cuda.is_available() else
-#                                             'mps' if torch.backends.mps.is_available() else 'cpu')
-#         super().__setattr__('_device', config['device'])
-#         super().__setattr__('_batch', self._safe_eval(config['batch']))
-#         super().__setattr__('_epochs', self._safe_eval(config['epochs']))
-#         super().__setattr__('_num_node', self._safe_eval(config['num_node']))
-#         super().__setattr__('_num_time', self._safe_eval(config['num_time']))
-#         super().__setattr__('_max_dist', self._safe_eval(config['max_dist']))
-#         super().__setattr__('_area_size', self._safe_eval(config['area_size']))
-#         super().__setattr__('_v_speed', self._safe_eval(config['v_speed']))
-#         super().__setattr__('_H_min', self._safe_eval(config['H_min']))
-#         super().__setattr__('_H_max', self._safe_eval(config['H_max']))
-#         super().__setattr__('_num_blocks', self._safe_eval(config['num_blocks']))
-#         super().__setattr__('_beta_1', self._safe_eval(config['beta_1']))
-#         super().__setattr__('_beta_2', self._safe_eval(config['beta_2']))
-#         super().__setattr__('_noise', self._safe_eval(config['noise']))
-#         super().__setattr__('_P_AVG', self._safe_eval(config['P_AVG']))
-#         super().__setattr__('_P_PEAK', self._safe_eval(config['P_PEAK']))
-#         super().__setattr__('_num_samples', self._safe_eval(config['num_samples']))
-#         super().__setattr__('_num_val_samples', self._safe_eval(config['num_val_samples']))
-#         super().__setattr__('_hidden_N', self._safe_eval(config['hidden_N']))
-#         super().__setattr__('_hidden_L', self._safe_eval(config['hidden_L']))
-#         super().__setattr__('_penalty_weight', [self._safe_eval(penalty) for penalty in config['penalty_weight']])
-#         super().__setattr__('_checkpoint_path', config['checkpoint_path'])
-#         super().__setattr__('_output_directory', config['output_directory'])
+    @classmethod
+    def lr_test_gen(cls):
+        """
+        Config generator for testing learning rates.
 
-#     def _safe_eval(self, value):
-#         """Safely evaluate a value if it's a string."""
-#         if isinstance(value, str):
-#             try:
-#                 # Only eval if necessary, and catch errors in case of invalid expressions
-#                 return eval(value)
-#             except (NameError, SyntaxError):
-#                 raise ValueError(f"Invalid expression in configuration: {value}")
-#         return value
+        :return: A generator that yields Config instances, each with a different learning rate from lr_ls.
+        """
+        base_cfg = cls.lr_test()
+        for lr in base_cfg.test_list:
+            yield base_cfg.replace(lr=lr)
 
-#     def __setattr__(self, name, value):
-#         if name in self.__dict__:
-#             raise TypeError(f'Cannot reassign immutable attribute: {name}')
-#         super().__setattr__(name, value)
+    ############# Config generator for testing the number of ground nodes. #############
 
-#     def __delattr__(self, name):
-#         if name in self.__dict__:
-#             raise Exception(f'Cannot delete immutable attribute: {name}')
-#         super().__delattr__(name)
+    @classmethod
+    def gu_num_test(cls):
+        """
+        Config for testing the number of ground nodes.
 
-#     @property
-#     def device(self):
-#         return self._device
+        :return: A Config instance for testing the number of ground nodes.
+        """
+        return cls(num_samples=100000, epochs=1000, test_list=[2, 3, 4, 5, 6])
 
-#     @property
-#     def batch(self):
-#         return self._batch
+    @classmethod
+    def gu_num_test_gen(cls):
+        """
+        Config generator for testing the number of ground nodes.
 
-#     @property
-#     def epochs(self):
-#         return self._epochs
-
-#     @property
-#     def num_node(self):
-#         return self._num_node
-
-#     @property
-#     def num_time(self):
-#         return self._num_time
-
-#     @property
-#     def max_dist(self):
-#         return self._max_dist
-
-#     @property
-#     def area_size(self):
-#         return self._area_size
-
-#     @property
-#     def v_speed(self):
-#         return self._v_speed
-
-#     @property
-#     def H_min(self):
-#         return self._H_min
-
-#     @property
-#     def H_max(self):
-#         return self._H_max
-
-#     @property
-#     def num_blocks(self):
-#         return self._num_blocks
-
-#     @property
-#     def beta_1(self):
-#         return self._beta_1
-
-#     @property
-#     def beta_2(self):
-#         return self._beta_2
-
-#     @property
-#     def noise(self):
-#         return self._noise
-
-#     @property
-#     def P_AVG(self):
-#         return self._P_AVG
-
-#     @property
-#     def P_PEAK(self):
-#         return self._P_PEAK
-
-#     @property
-#     def num_samples(self):
-#         return self._num_samples
-
-#     @property
-#     def num_val_samples(self):
-#         return self._num_val_samples
-
-#     @property
-#     def hidden_N(self):
-#         return self._hidden_N
-
-#     @property
-#     def hidden_L(self):
-#         return self._hidden_L
-
-#     @property
-#     def penalty_weight(self):
-#         return self._penalty_weight
-
-#     @property
-#     def checkpoint_path(self):
-#         return self._checkpoint_path
-
-#     @property
-#     def output_directory(self):
-#         return self._output_directory
-
-# def createDirectory(directory):
-#     try:
-#         if not os.path.exists(directory):
-#             os.makedirs(directory)
-#     except OSError:
-#         print("Error: Failed to create the directory.")
+        :return: A generator that yields Config instances, each with a different number of ground users from gu_num_ls.
+        """
+        base_cfg = cls.gu_num_test()
+        for gu_num in base_cfg.test_list:
+            yield cls(num_users=gu_num)
 
 
-# Hyperparameters = _Hyperparameters()
+def set_random_seed(cfg: Config = Config.default()):
+    """
+    Set random seeds for reproducibility.
 
-# if __name__ == "__main__":
-
-
-#     # Example Usage
-#     print(Hyperparameters.device)
-#     print(Hyperparameters.penalty_weight)
+    :param cfg: Configuration settings.
+    """
+    torch.manual_seed(cfg.random_seed)
+    np.random.seed(cfg.random_seed)
+    if cfg.device.type == "cuda":
+        torch.cuda.manual_seed_all(cfg.random_seed)

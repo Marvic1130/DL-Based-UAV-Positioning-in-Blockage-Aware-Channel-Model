@@ -1,8 +1,7 @@
 import numpy as np
 import torch
 from torch import Tensor
-
-from utils.config import config as config
+from utils.config import Config
 from datasets import Obstacle
 
 def calc_dist(p1: np.ndarray, p2: np.ndarray, q: np.ndarray):
@@ -13,7 +12,7 @@ def calc_dist(p1: np.ndarray, p2: np.ndarray, q: np.ndarray):
     return distances
 
 
-def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: list[Obstacle], cfg: config = config.default()):
+def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: list[Obstacle], cfg: Config = Config.default()):
     num_gn = gn_pos.shape[0]
     sig = np.zeros(num_gn)
 
@@ -41,7 +40,7 @@ def calc_dist_gpu(p1: Tensor, p2: Tensor, q: Tensor):
     dist = torch.norm(p - q[None, None, :, :], dim=3)
     return dist
 
-def calc_sig_strength_gpu(station_pos: Tensor, gn_pos: Tensor, obst: Tensor, cfg: config=config.default()):
+def calc_sig_strength_gpu(station_pos: Tensor, gn_pos: Tensor, obst: Tensor, cfg: Config=Config.default()):
     dist = calc_dist_gpu(station_pos, gn_pos, obst)
     bk_val = torch.tanh(torch.min(dist, dim=-1).values*0.2)
 
@@ -53,7 +52,7 @@ def calc_sig_strength_gpu(station_pos: Tensor, gn_pos: Tensor, obst: Tensor, cfg
     
     return torch.mean(se, dim=1)
 
-def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor, cfg: config=config.default()):
+def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor, cfg: Config=Config.default()):
     p1, p2, q = y_pred, x_batch, obst_points
 
     # v와 w의 차원 수정
@@ -81,21 +80,21 @@ def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor, cfg: config=
     return -torch.mean(se)
 
 def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: float = 11.95, a_2: float = 0.14,
-                                chunk_size: int = 1000, device: str = 'cpu', cfg: config=config.default()):
+                                chunk_size: int = 1000, cfg: Config=Config.default()):
     """
     :param gn_tensor: gn_tensor size: (gn_num, 3)
     :param height: height of the UAV
     :param a_1: a_1 parameter
     :param a_2: a_2 parameter
     :param chunk_size: chunk size
-    :param device: device
+    :param cfg: configuration
 
     :return: se: spectral efficiency (n, m) shape matrix
     """
-    x = torch.arange(-100, 100.01, 0.1, device=device)
-    y = torch.arange(-100, 100.01, 0.1, device=device)
+    x = torch.arange(-100, 100.01, 0.1, device=cfg.device)
+    y = torch.arange(-100, 100.01, 0.1, device=cfg.device)
     X, Y = torch.meshgrid(x, y, indexing='ij')
-    Z = torch.full_like(X, height, device=device)
+    Z = torch.full_like(X, height, device=cfg.device)
     grid = torch.stack([X, Y, Z], dim=-1)
     n, m, _ = grid.shape
 
@@ -112,7 +111,7 @@ def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: floa
         tanval = (180 / torch.pi) * torch.atan(diff[..., 2] / horizontal_dist)  # shape: (chunk_size, m, 4)
 
         P_LOS = 1 / (1 + a_1 * torch.exp(-a_2 * (tanval - a_1)))  # shape: (chunk_size, m, 4)
-        chan_gain = P_LOS * cfg.beta_1 / dist + (1 - P_LOS) * cfg.beta_2 / (dist ** 1.35)
+        chan_gain = P_LOS * cfg.beta_1 / dist + (1 - P_LOS) * cfg.beta_2 / (dist ** 1.65)
 
         snr = cfg.power * chan_gain / cfg.noise
         se = torch.log2(1 + snr)  # shape: (chunk_size, m, 4)

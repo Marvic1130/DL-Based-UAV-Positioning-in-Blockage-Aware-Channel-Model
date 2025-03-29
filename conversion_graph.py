@@ -1,117 +1,55 @@
-import pandas as pd
 import torch
 from tqdm import trange
-import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import wandb
 
-from datasets import CubeObstacle, CylinderObstacle, TrainDataset
+from datasets import TrainDataset, BlockageDataset
+from obstacles import create_obstacle_data
 from model import Net
+from train import train_pipeline, val_pipeline
 from utils.tools import calc_loss
-from utils.config import Hyperparameters as hp
-
-random_seed = 42
-batch_size = 1024
-epochs = 1000
-
-obstacle_ls = [
-    CubeObstacle(-30, 25, 35, 60, 20, 0.1),
-    CubeObstacle(-30, -25, 45, 10, 35, 0.1),
-    CubeObstacle(-30, -60, 35, 60, 20, 0.1),
-    CubeObstacle(50, -20, 35, 25, 25, 0.1),
-    CylinderObstacle(10, -5,  70, 15, 0.1),
-]
+from utils.config import Config, set_random_seed
 
 if __name__ == '__main__':
-    
-    torch.manual_seed(random_seed)
-    np.random.seed(random_seed)
-    if hp.device == "cuda":
-        torch.cuda.manual_seed_all(random_seed)
 
-    obst_points = []
-    for obstacle in obstacle_ls:
-        obst_points.append(torch.tensor(obstacle.points, dtype=torch.float32))
-
-    obst_points = torch.cat([op for op in obst_points], dim=1).mT.to(hp.device)
-
-    x = pd.read_csv('./data/dataset.csv')
+    cfg = Config.lr_test()
+    set_random_seed(cfg)
+    obstacle_ls, obst_tensor = create_obstacle_data()
+    x = BlockageDataset(cfg.num_samples, obstacle_ls=obstacle_ls, cfg=cfg).gnd_nodes[:, :, :2].reshape(-1, cfg.num_users*2)
     scaler_x = MinMaxScaler(feature_range=(0, 1))
-    scaler_x.fit(np.ones((2, x.shape[1]), dtype=np.float32)*np.array([[-100, 100]]).mT)
+    scaler_x.fit(np.ones((2, x.shape[1]), dtype=np.float32)*np.array([[-cfg.area_size//2, cfg.area_size//2]]).mT)
     x_scaled = scaler_x.transform(x)
 
-    x_train, x_val = train_test_split(x_scaled, test_size=0.2, random_state=random_seed)
+    x_train, x_val = train_test_split(x_scaled, test_size=0.2, random_state=cfg.random_seed)
 
-    train_dataset = TrainDataset(x_train, dtype=torch.float32).to(hp.device)
-    val_dataset = TrainDataset(x_val, dtype=torch.float32).to(hp.device)
+    train_dataset = TrainDataset(x_train, dtype=torch.float32).to(cfg.device)
+    val_dataset = TrainDataset(x_val, dtype=torch.float32).to(cfg.device)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=cfg.batch_size, shuffle=False)
 
-    lr_ls = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
-    results = {lr: {"train_loss": [], "val_loss": []} for lr in lr_ls}
+    results = {lr: {"train_loss": [], "val_loss": []} for lr in cfg.test_list}
 
-    for lr in lr_ls:
-        torch.manual_seed(random_seed)
-        np.random.seed(random_seed)
-        if hp.device == "cuda":
-            torch.cuda.manual_seed_all(random_seed)
+    for test_cfg in Config.lr_test_gen():
+        wandb.init(project="DL-based UAV Positioning", name=f"lr_test: {test_cfg.lr}", config=test_cfg.to_dict())
 
-        wandb.init(project="DL-based UAV Positioning", name=f"lr_test: {lr}", config={
-            "batch_size": batch_size,
-            "epochs": epochs,
-            "random_seed": random_seed,
-            "learning_rates": lr
-        })
-
-        # 모델 및 옵티마이저 초기화
-        model = Net(train_dataset.x.shape[1], 1024, 4, output_N=2).to(hp.device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
+        set_random_seed(test_cfg)
+        model = Net(train_dataset.x.shape[1], 1024, 4, output_N=2).to(test_cfg.device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=test_cfg.lr)
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-        for epoch in trange(epochs, desc=f"Training with lr={lr}"):
-            train_loss = 0.0
-            model.train()
-            for x in train_dataloader:
-                optimizer.zero_grad()
-                y_pred = model(x)
-
-                # x_reshaped 생성
-                x_reshaped = torch.tensor(scaler_x.inverse_transform(x.cpu()), device=hp.device,
-                                          dtype=torch.float32).view(-1, 4, 2)
-                x_reshaped = torch.cat(
-                    (x_reshaped, torch.zeros((x_reshaped.shape[0], x_reshaped.shape[1], 1), device=hp.device)), dim=-1)
-
-                # y_pred 수정 및 손실 계산
-                y_pred = torch.hstack((y_pred * hp.area_size - hp.area_size/2, torch.ones(y_pred.shape[0], 1, device=hp.device) * 70))
-                loss = calc_loss(y_pred, x_reshaped, obst_points)
-                loss.backward()
-                optimizer.step()
-                train_loss += loss.item()
+        for epoch in trange(test_cfg.epochs, desc=f"Training with lr={test_cfg.lr}"):
+            train_loss = train_pipeline(model, train_dataloader, optimizer, test_cfg)
 
             # 검증 손실 계산
-            val_loss = 0.0
-            model.eval()
-            with torch.no_grad():
-                for x in val_dataloader:
-                    y_pred = model(x)
-                    x_reshaped = torch.tensor(scaler_x.inverse_transform(x.cpu()), device=hp.device,
-                                              dtype=torch.float32).view(-1, 4, 2)
-                    x_reshaped = torch.cat(
-                        (x_reshaped, torch.zeros((x_reshaped.shape[0], x_reshaped.shape[1], 1), device=hp.device)),
-                        dim=-1)
-                    y_pred = torch.hstack((y_pred * hp.area_size - hp.area_size/2, torch.ones(y_pred.shape[0], 1, device=hp.device) * 70))
-                    val_loss += calc_loss(y_pred, x_reshaped, obst_points).item()
+            val_loss = val_pipeline(model, val_dataloader, obst_tensor, test_cfg)
 
             # 에폭별 평균 손실 기록
-            train_loss /= len(train_dataloader)
-            val_loss /= len(val_dataloader)
-            results[lr]["train_loss"].append(train_loss)
-            results[lr]["val_loss"].append(val_loss)
+            results[cfg.lr]["train_loss"].append(train_loss)
+            results[cfg.lr]["val_loss"].append(val_loss)
 
             # wandb에 손실 로깅
             wandb.log({
@@ -120,3 +58,11 @@ if __name__ == '__main__':
                 "epoch": epoch + 1
             })
         wandb.finish()
+
+    print("Training complete.")
+    print("Results:")
+    for lr, result in results.items():
+        print(f"Learning rate: {lr}")
+        print(f"Train loss: {result['train_loss']}")
+        print(f"Validation loss: {result['val_loss']}")
+        print()

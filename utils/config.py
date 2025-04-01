@@ -131,7 +131,7 @@ class Config:
 
         :return: A Config instance with test settings for learning rates.
         """
-        return cls(results_dir=os.path.join('lr_tuning', 'result'), num_samples=100000, epochs=1000, test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
+        return cls(results_dir=os.path.join('lr_test', 'result'), num_samples=100000, epochs=1000, test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
 
     @classmethod
     def lr_test_gen(cls):
@@ -152,7 +152,7 @@ class Config:
 
         :return: A Config instance with test settings for ground users.
         """
-        return cls(num_samples=100000, epochs=1000, test_list=[2, 3, 4, 5, 6])
+        return cls(results_dir=os.path.join('num_gu_test', 'result'), num_samples=100000, epochs=1000, test_list=[2, 3, 4, 5, 6])
 
     @classmethod
     def gu_num_test_gen(cls):

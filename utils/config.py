@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, asdict, astuple
 from typing import Dict, Any
 import numpy as np
@@ -30,6 +31,8 @@ class Config:
         scaler (MinMaxScaler): Scaler for feature normalization.
         test_list (list[Any]): List of test values for hyperparameter experiments.
     """
+    results_dir: str = ''
+    
     device: str = 'cuda' if torch.cuda.is_available() else \
         'mps' if torch.backends.mps.is_available() else 'cpu'
 
@@ -128,7 +131,7 @@ class Config:
 
         :return: A Config instance with test settings for learning rates.
         """
-        return cls(num_samples=100000, epochs=1000, test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
+        return cls(results_dir=os.path.join('lr_tuning', 'result'), num_samples=100000, epochs=1000, test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
 
     @classmethod
     def lr_test_gen(cls):

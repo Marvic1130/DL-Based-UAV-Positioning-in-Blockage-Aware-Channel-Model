@@ -19,15 +19,27 @@ class Net(nn.Module):
         self.batches = nn.ModuleList()
         for _ in range(hidden_L):
             self.batches.append(nn.BatchNorm1d(hidden_N))
+        
+        # Use learnable PReLU layers
+        self.prelus = nn.ModuleList()
+        for _ in range(hidden_L):
+            self.prelus.append(nn.PReLU())
 
         self.output = nn.Linear(hidden_N, output_N)
+        
     def forward(self, x):
         z = x
-        for layer, dropout, batch_norm in zip(self.layers, self.dropouts, self.batches):
+        for layer, batch_norm, prelu, dropout in zip(self.layers, self.batches, self.prelus, self.dropouts):
             z = layer(z)
             z = batch_norm(z)
-            z = F.leaky_relu(z, 0.05)
+            z = prelu(z)
             z = dropout(z)
-
         z = torch.sigmoid(self.output(z))
         return z
+
+    
+    
+    
+    
+    
+    # z = F.leaky_relu(z, 0.05)

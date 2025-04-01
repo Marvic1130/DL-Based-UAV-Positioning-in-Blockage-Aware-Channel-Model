@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import torch
 from tqdm import trange
@@ -10,6 +11,7 @@ from obstacles import create_obstacle_data
 from model import Net
 from train import train_pipeline, val_pipeline
 from utils.config import Config, set_random_seed
+from utils.tools import createDirectory
 
 if __name__ == '__main__':
 
@@ -36,7 +38,7 @@ if __name__ == '__main__':
         set_random_seed(test_cfg)
         model = Net(train_dataset.x.shape[1], 1024, 4, output_N=2).to(test_cfg.device)
         optimizer = torch.optim.Adam(model.parameters(), lr=test_cfg.lr)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
         for epoch in trange(test_cfg.epochs, desc=f"Training with lr={test_cfg.lr}"):
             train_loss = train_pipeline(model, train_dataloader, optimizer, test_cfg)
@@ -57,7 +59,8 @@ if __name__ == '__main__':
         for epoch, (train_loss, val_loss) in enumerate(zip(res["train_loss"], res["val_loss"]), start=1):
             result_list.append({"lr": lr, "epoch": epoch, "train_loss": train_loss, "val_loss": val_loss})
     df_results = pd.DataFrame(result_list)
-    df_results.to_csv("results/conversion_graph", index=False)
+    createDirectory(cfg.results_dir)
+    df_results.to_csv(os.path.join(cfg.results_dir, 'result.csv'), index=False)
     print("Training complete.")
     print("Results:")
     print(df_results)

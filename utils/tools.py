@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 from torch import Tensor
@@ -121,3 +122,7 @@ def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: floa
 
     result_se = torch.cat(results, dim=0)
     return result_se
+
+def createDirectory(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)

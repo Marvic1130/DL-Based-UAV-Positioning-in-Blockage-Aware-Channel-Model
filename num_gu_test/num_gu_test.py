@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 import torch
 from tqdm import trange
@@ -15,7 +16,7 @@ from utils.tools import createDirectory
 
 if __name__ == '__main__':
     cfg = Config.gu_num_test()
-    results = {num_gu: {"train_loss": [], "val_loss": []} for num_gu in cfg.test_list}
+    results = {num_gu: {"train_loss": [], "val_loss": [], "time": []} for num_gu in cfg.test_list}
 
     for test_cfg in Config.gu_num_test_gen():
         set_random_seed(test_cfg)
@@ -33,7 +34,7 @@ if __name__ == '__main__':
         train_dataloader = DataLoader(train_dataset, batch_size=test_cfg.batch_size, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=test_cfg.batch_size, shuffle=False)
 
-        wandb.init(project="DL-based UAV Positioning", name=f"num_gu_test: {test_cfg.lr}", config=test_cfg.to_dict())
+        wandb.init(project="DL-based UAV Positioning", name=f"num_gu_test: {test_cfg.num_users}", config=test_cfg.to_dict())
 
         set_random_seed(test_cfg)
         model = Net(train_dataset.x.shape[1], 1024, 4, output_N=2).to(test_cfg.device)
@@ -41,23 +42,28 @@ if __name__ == '__main__':
         # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
         for epoch in trange(test_cfg.epochs, desc=f"Training with num of gu={test_cfg.num_users}"):
+            start_time = time.time()
+            
             train_loss = train_pipeline(model, train_dataloader, optimizer, test_cfg)
             val_loss = val_pipeline(model, val_dataloader, obst_tensor, test_cfg)
 
+            end_time = time.time()
+            results[test_cfg.num_users]["time"].append(end_time - start_time)
             results[test_cfg.num_users]["train_loss"].append(train_loss)
             results[test_cfg.num_users]["val_loss"].append(val_loss)
 
             wandb.log({
                 "train_loss": train_loss,
                 "val_loss": val_loss,
+                "time": end_time - start_time,
                 "epoch": epoch + 1
             })
         wandb.finish()
 
     result_list = []
     for num_gu, res in results.items():
-        for epoch, (train_loss, val_loss) in enumerate(zip(res["train_loss"], res["val_loss"]), start=1):
-            result_list.append({"num_gu": num_gu, "epoch": epoch, "train_loss": train_loss, "val_loss": val_loss})
+        for epoch, (train_loss, val_loss, train_time) in enumerate(zip(res["train_loss"], res["val_loss"], res["time"]), start=1):
+            result_list.append({"num_gu": num_gu, "epoch": epoch, "train_loss": train_loss, "val_loss": val_loss, "time": train_time})
     df_results = pd.DataFrame(result_list)
     createDirectory(cfg.results_dir)
     df_results.to_csv(os.path.join(cfg.results_dir, 'result.csv'), index=False)

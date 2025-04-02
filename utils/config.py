@@ -152,7 +152,7 @@ class Config:
 
         :return: A Config instance with test settings for ground users.
         """
-        return cls(results_dir=os.path.join('num_gu_test', 'result'), num_samples=100000, epochs=1000, test_list=[2, 3, 4, 5, 6])
+        return cls(results_dir=os.path.join('num_gu_test', 'result'), epochs=1000, test_list=[2, 3, 4, 5, 6])
 
     @classmethod
     def gu_num_test_gen(cls):

@@ -1,10 +1,10 @@
 /.idea
 /__pycache__
 /utils/__pycache__
-/num_gu_test/__pycache__
-/num_gu_test/num_gu_test/__pycache__
+/src/num_gu_test/__pycache__
+/src/num_gu_test/num_gu_test/__pycache__
 test.ipynb
 /runs
 /data/data.csv
 /wandb
-/num_gu_test/wandb/
+/src/num_gu_test/wandb/

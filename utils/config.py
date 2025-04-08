@@ -44,7 +44,7 @@ class Config:
     lr: float = 1e-4
     random_seed: int = 42
     batch_size: int = 1024
-    epochs: int = 1000
+    epochs: int = 100000
 
     # UAV and environment settings
     num_users: int = 4
@@ -112,7 +112,17 @@ class Config:
         :param kwargs: Key-value pairs of attributes to replace.
         :return: A new Config instance with updated attributes.
         """
-        return Config(**{**self.to_dict(), **kwargs})
+        base = self.to_dict()
+        extra = {}
+        for key, value in kwargs.items():
+            if key in base:
+                base[key] = value
+            else:
+                extra[key] = value
+        new_instance = Config(**base)
+        for key, value in extra.items():
+            setattr(new_instance, key, value)
+        return new_instance
 
     @classmethod
     def default(cls) -> 'Config':
@@ -131,7 +141,9 @@ class Config:
 
         :return: A Config instance with test settings for learning rates.
         """
-        return cls(results_dir=os.path.join('lr_test', 'result'), num_samples=100000, epochs=1000, test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
+        return cls(results_dir=os.path.join('src', 'lr_test', 'result'),
+                   num_samples=100000, epochs=1000,
+                   test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
 
     @classmethod
     def lr_test_gen(cls):
@@ -152,7 +164,8 @@ class Config:
 
         :return: A Config instance with test settings for ground users.
         """
-        return cls(results_dir=os.path.join('num_gu_test', 'result'), epochs=1000, test_list=[2, 3, 4, 5, 6])
+        return cls(results_dir=os.path.join('src', 'num_gu_test', 'result'),
+                   epochs=1000, test_list=[2, 3, 4, 5, 6])
 
     @classmethod
     def gu_num_test_gen(cls):
@@ -164,6 +177,35 @@ class Config:
         base_cfg = cls.gu_num_test()
         for gu in base_cfg.test_list:
             yield base_cfg.replace(num_users=gu)
+
+    ############# Training models. #############
+    @classmethod
+    def training(cls) -> 'Config':
+        """
+        Generate a configuration for training model experiments.
+
+        :return: A Config instance with training-specific settings.
+        """
+        return cls(results_dir=os.path.join('src', 'train_model', 'result'),
+                   test_list=[[2, 3, 4, 5, 6], [50, 60, 70, 80, 90]])
+
+    @classmethod
+    def training_gen(cls, mode: str = 'num_gu'):
+        """
+        Generate training configurations with varying hyperparameters for model experiments.
+
+        :return: A generator that yields Config instances with updated hyperparameter values.
+        """
+        base_cfg = cls.training()
+        if mode == 'num_gu':
+            for gu in base_cfg.test_list[0]:
+                yield base_cfg.replace(num_users=gu, mode=mode)
+        if mode == 'height':
+            for h in base_cfg.test_list[1]:
+                yield base_cfg.replace(height=h, mode=mode)
+        else:
+            raise ValueError("Invalid mode. Choose 'num_gu' or 'height'.")
+
 
 
 def set_random_seed(cfg: Config = Config.default()) -> None:

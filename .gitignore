@@ -8,3 +8,4 @@ test.ipynb
 /data/data.csv
 /wandb
 /src/num_gu_test/wandb/
+/src/train_model/wandb/

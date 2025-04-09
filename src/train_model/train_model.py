@@ -47,7 +47,7 @@ if __name__ == '__main__':
         train_dataloader = DataLoader(train_dataset, batch_size=test_cfg.batch_size, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=test_cfg.batch_size, shuffle=False)
 
-        wandb.init(project="DL-based UAV Positioning", name=f"num_gu_test: {test_cfg.num_users}",
+        wandb.init(project="DL-based UAV Positioning", name=f"num_gu_training: {test_cfg.num_users}",
                    config=test_cfg.to_dict())
 
         set_random_seed(test_cfg)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     for test_cfg in Config.training_gen(mode='height'):
 
-        wandb.init(project="DL-based UAV Positioning", name=f"height_test: {test_cfg.height}",
+        wandb.init(project="DL-based UAV Positioning", name=f"height_training: {test_cfg.height}",
                    config=test_cfg.to_dict())
 
         set_random_seed(test_cfg)

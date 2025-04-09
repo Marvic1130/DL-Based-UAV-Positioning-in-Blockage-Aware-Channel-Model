@@ -44,7 +44,7 @@ class Config:
     lr: float = 1e-4
     random_seed: int = 42
     batch_size: int = 1024
-    epochs: int = 100000
+    epochs: int = 10000
 
     # UAV and environment settings
     num_users: int = 4

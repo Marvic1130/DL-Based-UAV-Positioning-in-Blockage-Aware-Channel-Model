@@ -200,7 +200,7 @@ class Config:
         if mode == 'num_gu':
             for gu in base_cfg.test_list[0]:
                 yield base_cfg.replace(num_users=gu, mode=mode)
-        if mode == 'height':
+        elif mode == 'height':
             for h in base_cfg.test_list[1]:
                 yield base_cfg.replace(height=h, mode=mode)
         else:

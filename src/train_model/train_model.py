@@ -47,7 +47,7 @@ if __name__ == '__main__':
         train_dataloader = DataLoader(train_dataset, batch_size=test_cfg.batch_size, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=test_cfg.batch_size, shuffle=False)
 
-        wandb.init(project="DL-based UAV Positioning", name=f"num_gu_training: {test_cfg.num_users}",
+        wandb.init(project="DL-based UAV Positioning", name=f"num_gu_training : {test_cfg.num_users}",
                    config=test_cfg.to_dict())
 
         set_random_seed(test_cfg)
@@ -162,5 +162,4 @@ if __name__ == '__main__':
     createDirectory(cfg.results_dir)
     df_results.to_csv(os.path.join(cfg.results_dir, 'height_result.csv'), index=False)
     print("Train complete for height.")
-
-
+    

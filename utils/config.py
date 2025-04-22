@@ -206,6 +206,35 @@ class Config:
         else:
             raise ValueError("Invalid mode. Choose 'num_gu' or 'height'.")
 
+    @classmethod
+    def brute_force(cls) -> 'Config':
+        """
+        Generate a configuration for brute-force model experiments.
+
+        :return: A Config instance with brute-force-specific settings.
+        """
+        return cls(results_dir=os.path.join('src', 'brute_force', 'result'),
+                   test_list=[[2, 3, 4, 5, 6], [50, 60, 70, 80, 90]]).replace()
+
+    @classmethod
+    def brute_force_gen(cls, mode: str = 'num_gu'):
+        """
+        Generate configurations for brute-force model experiments.
+
+        :return: A generator that yields Config instances with updated hyperparameter values.
+        """
+        base_cfg = cls.brute_force()
+        grid_step = 0.1
+        chunk = 10_000
+        if mode == 'num_gu':
+            for gu in base_cfg.test_list[0]:
+                yield base_cfg.replace(num_users=gu, mode=mode, grid_step=grid_step, chunk=chunk)
+        elif mode == 'height':
+            for h in base_cfg.test_list[1]:
+                yield base_cfg.replace(height=h, mode=mode, grid_step=grid_step, chunk=chunk)
+        else:
+            raise ValueError("Invalid mode. Choose 'num_gu' or 'height'.")
+
 
 
 def set_random_seed(cfg: Config = Config.default()) -> None:

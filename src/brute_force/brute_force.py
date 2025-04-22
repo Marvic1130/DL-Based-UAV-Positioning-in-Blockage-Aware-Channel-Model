@@ -59,34 +59,6 @@ def run_brute_force(test_cfg: Config) -> None:
         cfg            = test_cfg
     )
 
-    # ── build candidate UAV‑position grid ──────────────────────────
-    side_pts   = int(round(test_cfg.area_size / test_cfg.grid_step)) + 1
-    xs         = torch.linspace(-test_cfg.area_size / 2,
-                                test_cfg.area_size / 2,
-                                side_pts,
-                                device=test_cfg.device)
-    ys         = xs.clone()
-    X, Y       = torch.meshgrid(xs, ys, indexing="ij")
-    station_pos = torch.stack(
-        [X.reshape(-1),
-         Y.reshape(-1),
-         torch.full_like(X.reshape(-1), test_cfg.height)],
-        dim=1)                                    # [N,3]
-
-    grid_side  = side_pts
-
-    # ── obstacle point cloud (K,3) tensor ─────────────────────────
-    obst_pts = torch.cat(
-        [torch.tensor(o.points,
-                      dtype=torch.float32,
-                      device=test_cfg.device)
-         for o in obst_list],
-        dim=1
-    ).T                                          # [K,3]
-
-    # results accumulator
-    results: list[list[float]] = []
-
     # ── ground‑node 좌표 CSV를 로드해 dataset.gnd_nodes 교체 ────────────
     csv_name   = f"gn_coords_{test_cfg.num_users}.csv"
     csv_path   = os.path.join(Config.training().results_dir, "data", csv_name)
@@ -95,38 +67,52 @@ def run_brute_force(test_cfg: Config) -> None:
         gnd_array, dtype=torch.float32, device=test_cfg.device
     ).reshape(-1, test_cfg.num_users, 3)
 
-    # -- DataLoader : larger batch & pinned memory -------------------------
-    loader = DataLoader(dataset,
-                        batch_size=1,            # <= can tune to VRAM
-                        shuffle=False,
-                        pin_memory=True,
-                        num_workers=0)
+    loader = DataLoader(dataset, batch_size=1)
 
-    # ---------------------------------------------------------------------
-    with torch.no_grad():                         # inference only
-        for gnd_nodes in tqdm(loader, desc="Searching", miniters=20):
-            gnd_nodes = gnd_nodes.squeeze(0)                  # [U,3]
+    results = []
 
-            # ---- 신호 세기 계산 (chunk 처리) ----------------------------
-            sig_chunks = []
-            for s in range(0, station_pos.size(0), test_cfg.chunk):
-                sig_chunks.append(
-                    calc_sig_strength_gpu(station_pos[s:s+test_cfg.chunk],
-                                          gnd_nodes,
-                                          obst_pts,
-                                          cfg=test_cfg)
-                )
-            sig_all = torch.cat(sig_chunks, dim=0).reshape(grid_side, grid_side)
+    # -----------------------------------------------------------
+    # ❶ Station‑candidate grid (X,Y plane at fixed height)
+    # -----------------------------------------------------------
+    side_pts   = int(round(test_cfg.area_size / test_cfg.grid_step)) + 1
+    xs         = torch.linspace(-test_cfg.area_size/2,
+                                test_cfg.area_size/2,
+                                side_pts, device=test_cfg.device)
+    ys         = xs.clone()
+    X, Y       = torch.meshgrid(xs, ys, indexing='ij')
+    station_pos = torch.stack([X.reshape(-1),
+                               Y.reshape(-1),
+                               torch.full_like(X.reshape(-1), test_cfg.height)],
+                              dim=1)                       # [N, 3]
+    grid_side  = side_pts                                 # 정사각형 격자
 
-            # ---- 최적 좌표 계산 ----------------------------------------
-            max_idx  = torch.unravel_index(torch.argmax(sig_all), sig_all.shape)
-            x_max    = max_idx[0].item()*test_cfg.grid_step - (test_cfg.area_size//2)
-            y_max    = max_idx[1].item()*test_cfg.grid_step - (test_cfg.area_size//2)
-            z_max    = test_cfg.height
+    # obstacles → 하나의 (K,3) 텐서
+    obst_pts = torch.cat([torch.tensor(o.points,
+                                       dtype=torch.float32,
+                                       device=test_cfg.device)
+                          for o in obst_list], dim=1).T    # [K,3]
+    # -----------------------------------------------------------
+    for gnd_nodes in tqdm(loader, desc="Searching"):
+        gnd_nodes = gnd_nodes.squeeze(0)                  # [U,3]
 
-            results.append(list(gnd_nodes.cpu().numpy().ravel()) + [x_max, y_max, z_max])
-            if test_cfg.device == "cuda":
-                torch.cuda.synchronize()
+        # ---- 신호 세기 계산 (chunk 처리) ----------------------------
+        sig_chunks = []
+        for s in range(0, station_pos.size(0), test_cfg.chunk):
+            sig_chunks.append(
+                calc_sig_strength_gpu(station_pos[s:s+test_cfg.chunk],
+                                      gnd_nodes,
+                                      obst_pts,
+                                      cfg=test_cfg)
+            )
+        sig_all = torch.cat(sig_chunks, dim=0).reshape(grid_side, grid_side)
+
+        # ---- 최적 좌표 계산 ----------------------------------------
+        max_idx  = torch.unravel_index(torch.argmax(sig_all), sig_all.shape)
+        x_max    = max_idx[0].item()*test_cfg.grid_step - (test_cfg.area_size//2)
+        y_max    = max_idx[1].item()*test_cfg.grid_step - (test_cfg.area_size//2)
+        z_max    = test_cfg.height
+
+        results.append(list(gnd_nodes.cpu().numpy().ravel()) + [x_max, y_max, z_max])
 
     # 결과 저장
     save_df(

@@ -36,10 +36,3 @@ class Net(nn.Module):
             z = dropout(z)
         z = torch.sigmoid(self.output(z))
         return z
-
-    
-    
-    
-    
-    
-    # z = F.leaky_relu(z, 0.05)

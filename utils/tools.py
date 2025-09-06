@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from utils.config import Config
-from datasets import Obstacle
+from obstacles import Obstacle, CubeObstacle, CylinderObstacle
 
 def calc_dist(p1: np.ndarray, p2: np.ndarray, q: np.ndarray):
     v = p2 - p1
@@ -80,11 +80,38 @@ def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor, cfg: Config=
 
     return -torch.mean(se)
 
-def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: float = 11.95, a_2: float = 0.14,
-                                chunk_size: int = 1000, cfg: Config=Config.default()):
+def create_mask(obstacle_ls: list, grid: torch.Tensor) -> torch.Tensor:
+
+    X = grid[..., 0]
+    Y = grid[..., 1]
+    Z = grid[..., 2]
+
+    mask_grid = torch.ones_like(X, dtype=torch.int8, device=X.device)
+
+    for obstacle in obstacle_ls:
+        mask = None
+        if isinstance(obstacle, CubeObstacle):
+            mask_x = (obstacle.x <= X) & (X <= obstacle.x + obstacle.width)
+            mask_y = (obstacle.y <= Y) & (Y <= obstacle.y + obstacle.depth)
+            mask_z = (0 <= Z) & (Z <= obstacle.height)
+            mask = mask_x & mask_y & mask_z
+
+        elif isinstance(obstacle, CylinderObstacle):
+            dist_sq = (obstacle.x - X)**2 + (obstacle.y - Y)**2
+            mask_base = dist_sq <= obstacle.radius**2
+            mask_z = (0 <= Z) & (Z <= obstacle.height)
+            mask = mask_base & mask_z
+
+        if mask is not None:
+            mask_grid[mask] = 0
+
+    return mask_grid
+
+def probabilistic_channel_model(gn_tensor: Tensor, obst_ls: list[Obstacle], a_1: float = 11.95, a_2: float = 0.14,
+                                cfg: Config=Config.default()):
     """
     :param gn_tensor: gn_tensor size: (gn_num, 3)
-    :param height: height of the UAV
+    :param obst_ls: list of Obstacle
     :param a_1: a_1 parameter
     :param a_2: a_2 parameter
     :param chunk_size: chunk size
@@ -92,17 +119,17 @@ def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: floa
 
     :return: se: spectral efficiency (n, m) shape matrix
     """
-    x = torch.arange(-100, 100.01, 0.1, device=cfg.device)
-    y = torch.arange(-100, 100.01, 0.1, device=cfg.device)
+    x = torch.arange(-100, 100.01, cfg.grid_step, device=cfg.device)
+    y = torch.arange(-100, 100.01, cfg.grid_step, device=cfg.device)
     X, Y = torch.meshgrid(x, y, indexing='ij')
-    Z = torch.full_like(X, height, device=cfg.device)
+    Z = torch.full_like(X, cfg.height, device=cfg.device)
     grid = torch.stack([X, Y, Z], dim=-1)
     n, m, _ = grid.shape
 
     results = []
 
-    for i in range(0, n, chunk_size):
-        grid_chunk = grid[i: i + chunk_size]
+    for i in range(0, n, cfg.chunk):
+        grid_chunk = grid[i: i + cfg.chunk]
         grid_chunk = grid_chunk.unsqueeze(2)  # 이제 shape: (chunk_size, m, 1, 3)
         gn_expanded = gn_tensor.unsqueeze(0).unsqueeze(0)
 
@@ -121,6 +148,10 @@ def probabilistic_channel_model(gn_tensor: Tensor, height: float = 70, a_1: floa
         results.append(se_mean.cpu())
 
     result_se = torch.cat(results, dim=0)
+
+    mask = create_mask(obst_ls, grid)
+    result_se = result_se * mask
+
     return result_se
 
 def createDirectory(directory):

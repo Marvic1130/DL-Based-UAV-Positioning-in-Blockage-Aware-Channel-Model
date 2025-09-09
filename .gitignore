@@ -9,3 +9,4 @@ test.ipynb
 /wandb
 /src/num_gu_test/wandb/
 /src/train_model/wandb/
+/src/edge_device/__pycache__

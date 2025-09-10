@@ -1,4 +1,5 @@
 import os
+from typing import List
 import numpy as np
 import torch
 from torch import Tensor
@@ -13,7 +14,7 @@ def calc_dist(p1: np.ndarray, p2: np.ndarray, q: np.ndarray):
     return distances
 
 
-def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: list[Obstacle], cfg: Config = Config.default()):
+def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: List[Obstacle], cfg: Config = Config.default()):
     num_gn = gn_pos.shape[0]
     sig = np.zeros(num_gn)
 
@@ -107,7 +108,7 @@ def create_mask(obstacle_ls: list, grid: torch.Tensor) -> torch.Tensor:
 
     return mask_grid
 
-def probabilistic_channel_model(gn_tensor: Tensor, obst_ls: list[Obstacle], a_1: float = 11.95, a_2: float = 0.14,
+def probabilistic_channel_model(gn_tensor: Tensor, obst_ls: List[Obstacle], a_1: float = 11.95, a_2: float = 0.14,
                                 cfg: Config=Config.default()):
     """
     :param gn_tensor: gn_tensor size: (gn_num, 3)

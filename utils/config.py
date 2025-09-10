@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, asdict, astuple
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 import numpy as np
 import torch
 from sklearn.preprocessing import MinMaxScaler
@@ -67,7 +67,7 @@ class Config:
     scaler = MinMaxScaler(feature_range=(0, 1))
 
     # Test settings for hyperparameter experiments
-    test_list: list[Any] = None
+    test_list: List[Any] = None
 
     def __post_init__(self):
         """
@@ -89,7 +89,7 @@ class Config:
         """
         return asdict(self)
 
-    def to_tuple(self) -> tuple[Any]:
+    def to_tuple(self) -> Tuple[Any]:
         """
         Convert the configuration to a tuple.
 

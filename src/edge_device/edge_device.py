@@ -5,7 +5,7 @@ from src.edge_device.tflite import run_tflite_inference
 from src.edge_device.pytorch import run_pytorch_inference
 from utils.tools import createDirectory
     
-DEVICE_TYPE = 'rbp5'
+DEVICE_TYPE = 'rbp4'
 csv_path = os.path.join('src', 'train_model', 'result', 'data', 'gn_coords_6.csv')
 result_path = os.path.join('src', 'edge_device', 'results', DEVICE_TYPE)
 createDirectory(result_path)

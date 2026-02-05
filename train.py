@@ -1,12 +1,11 @@
 import torch
 from torch.utils.data import DataLoader
 
-from obstacles import create_obstacle_data
 from utils.tools import calc_loss
 from utils.config import Config
 
 def train_pipeline(model: torch.nn.Module, dataloader: DataLoader, optimizer: torch.optim.Optimizer,
-                   cfg: Config) -> float:
+                   obst_tensor: torch.Tensor, cfg: Config) -> float:
     """
     Train the model for one epoch using the provided training data and configuration settings.
 
@@ -30,14 +29,12 @@ def train_pipeline(model: torch.nn.Module, dataloader: DataLoader, optimizer: to
     :param cfg: A Config instance containing training and environment settings.
     :return: The average training loss per batch over the epoch.
     """
-    total_loss = 0.0
-    obst_tensor = create_obstacle_data(cfg=cfg, return_type='tensor')
+    total_loss = torch.zeros((), device=cfg.device)
     model.train()
     for x in dataloader:
         optimizer.zero_grad()
         y_pred = model(x)
-        x_reshaped = torch.tensor(cfg.scaler.inverse_transform(x.cpu()), device=cfg.device, dtype=torch.float32).view(
-            -1, cfg.num_users, 2)
+        x_reshaped = cfg.scaler.inverse_transform(x).view(-1, cfg.num_users, 2)
         x_reshaped = torch.cat(
             (x_reshaped, torch.zeros((x_reshaped.shape[0], x_reshaped.shape[1], 1), device=cfg.device)),
             dim=-1
@@ -48,9 +45,9 @@ def train_pipeline(model: torch.nn.Module, dataloader: DataLoader, optimizer: to
         loss = calc_loss(y_pred, x_reshaped, obst_tensor)
         loss.backward()
         optimizer.step()
-        total_loss += loss.item()
+        total_loss += loss.detach()
 
-    return total_loss / len(dataloader)
+    return (total_loss / len(dataloader)).item()
 
 
 def val_pipeline(model: torch.nn.Module, dataloader: DataLoader, obst_tensor: torch.Tensor, cfg: Config) -> float:
@@ -72,13 +69,12 @@ def val_pipeline(model: torch.nn.Module, dataloader: DataLoader, obst_tensor: to
     :param cfg: A Config instance containing training and environment settings.
     :return: The average validation loss per batch.
     """
-    total_loss = 0.0
+    total_loss = torch.zeros((), device=cfg.device)
     model.eval()
     with torch.no_grad():
         for x in dataloader:
             y_pred = model(x)
-            x_reshaped = torch.tensor(cfg.scaler.inverse_transform(x.cpu()),
-                                      device=cfg.device, dtype=torch.float32).view(-1, cfg.num_users, 2)
+            x_reshaped = cfg.scaler.inverse_transform(x).view(-1, cfg.num_users, 2)
             x_reshaped = torch.cat(
                 (x_reshaped, torch.zeros((x_reshaped.shape[0], x_reshaped.shape[1], 1), device=cfg.device)),
                 dim=-1
@@ -87,6 +83,6 @@ def val_pipeline(model: torch.nn.Module, dataloader: DataLoader, obst_tensor: to
                 (y_pred * cfg.area_size - cfg.area_size / 2,
                  torch.ones(y_pred.shape[0], 1, device=cfg.device) * cfg.height)
             )
-            total_loss += calc_loss(y_pred, x_reshaped, obst_tensor).item()
+            total_loss += calc_loss(y_pred, x_reshaped, obst_tensor).detach()
 
-    return total_loss / len(dataloader)
+    return (total_loss / len(dataloader)).item()

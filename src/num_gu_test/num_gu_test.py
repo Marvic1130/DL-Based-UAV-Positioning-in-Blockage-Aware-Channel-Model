@@ -44,7 +44,7 @@ if __name__ == '__main__':
         for epoch in trange(test_cfg.epochs, desc=f"Training with num of gu={test_cfg.num_users}"):
             start_time = time.time()
             
-            train_loss = train_pipeline(model, train_dataloader, optimizer, test_cfg)
+            train_loss = train_pipeline(model, train_dataloader, optimizer, obst_tensor, test_cfg)
             val_loss = val_pipeline(model, val_dataloader, obst_tensor, test_cfg)
 
             end_time = time.time()

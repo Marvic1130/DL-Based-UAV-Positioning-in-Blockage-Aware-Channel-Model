@@ -3,7 +3,7 @@ from dataclasses import dataclass, asdict, astuple
 from typing import Dict, Any, List, Tuple
 import numpy as np
 import torch
-from sklearn.preprocessing import MinMaxScaler
+from utils.scaler import MinMaxScaler
 
 @dataclass
 class Config:
@@ -41,9 +41,9 @@ class Config:
     hidden_L: int = 4
 
     # Training settings
-    lr: float = 1e-4
+    lr: float = 1e-3
     random_seed: int = 42
-    batch_size: int = 1024
+    batch_size: int = 4096
     epochs: int = 10000
 
     # UAV and environment settings
@@ -52,6 +52,8 @@ class Config:
     height: int = 70
 
     # Channel settings
+    alpha_1: float = 2
+    alpha_2: float = 3.3
     beta_1: float = 10 ** (-4.643)
     beta_2: float = 10 ** (-5.643)
     noise: float = 10 ** (-10.7)
@@ -63,23 +65,23 @@ class Config:
     num_samples: int = 500000
     test_samples: int = 10000
 
-    # Scaler for feature normalization (initialized and fitted in __post_init__)
-    scaler = MinMaxScaler(feature_range=(0, 1))
+    # Scaler for feature normalization (initialized in __post_init__)
+    scaler = None
 
     # Test settings for hyperparameter experiments
     test_list: List[Any] = None
 
     def __post_init__(self):
         """
-        Post-initialization: Fit the scaler with dummy data based on area_size and num_users.
+        Post-initialization: Initialize a lightweight Min-Max scaler.
 
-        The scaler is fitted with an array of shape (2, 2*num_users) where the values range
-        from -area_size//2 to area_size//2.
+        This repo normalizes GN x/y coordinates into [0, 1] using the known environment bounds
+        [-area_size//2, area_size//2]. We keep the scaler object off dataclass fields so it
+        won't be serialized into wandb configs via asdict().
         """
-        self.scaler.fit(
-            np.ones((2, 2 * self.num_users), dtype=np.float32) *
-            np.array([[-self.area_size // 2, self.area_size // 2]]).T
-        )
+        data_min = np.full((2 * self.num_users,), -self.area_size // 2, dtype=np.float32)
+        data_max = np.full((2 * self.num_users,), self.area_size // 2, dtype=np.float32)
+        self.scaler = MinMaxScaler(data_min=data_min, data_max=data_max)
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -142,8 +144,7 @@ class Config:
         :return: A Config instance with test settings for learning rates.
         """
         return cls(results_dir=os.path.join('src', 'lr_test', 'result'),
-                   num_samples=100000, epochs=1000,
-                   test_list=[1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
+                   epochs=1000, test_list=[1e-2, 5e-3, 1e-3, 5e-4, 1e-4, 5e-5], batch_size=4096)
 
     @classmethod
     def lr_test_gen(cls):
@@ -165,7 +166,7 @@ class Config:
         :return: A Config instance with test settings for ground users.
         """
         return cls(results_dir=os.path.join('src', 'num_gu_test', 'result'),
-                   epochs=1000, test_list=[2, 3, 4, 5, 6])
+                   epochs=1000, test_list=[2, 3, 4, 5, 6], batch_size=4096)
 
     @classmethod
     def gu_num_test_gen(cls):
@@ -187,7 +188,7 @@ class Config:
         :return: A Config instance with training-specific settings.
         """
         return cls(results_dir=os.path.join('src', 'train_model', 'result'),
-                   test_list=[[2, 3, 4, 5, 6], [50, 60, 70, 80, 90]])
+                   test_list=[[2, 3, 4, 5, 6], [50, 60, 70, 80, 90]], batch_size=4096)
 
     @classmethod
     def training_gen(cls, mode: str = 'num_gu'):
@@ -274,5 +275,5 @@ def set_random_seed(cfg: Config = Config.default()) -> None:
     """
     torch.manual_seed(cfg.random_seed)
     np.random.seed(cfg.random_seed)
-    if cfg.device == "cuda":
+    if isinstance(cfg.device, str) and cfg.device.startswith("cuda"):
         torch.cuda.manual_seed_all(cfg.random_seed)

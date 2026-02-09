@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from utils.config import Config
 from obstacles import Obstacle, CubeObstacle, CylinderObstacle
+from utils.scaler import MinMaxScaler
 
 def calc_dist(p1: np.ndarray, p2: np.ndarray, q: np.ndarray):
     v = p2 - p1
@@ -25,7 +26,7 @@ def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: List[Obst
         min_dist2obst = np.array([np.min(calc_dist(station_pos, gn_pos[i], obst[j].points)) for j in range(len(obst))])
 
         bk_val = np.tanh(0.2 * np.min(min_dist2obst))
-        chan_gain = bk_val * cfg.beta_1 / dist + (1 - bk_val) * cfg.beta_2 / (dist ** 1.65)
+        chan_gain = bk_val * cfg.beta_1 / (dist ** cfg.alpha_1) + (1 - bk_val) * cfg.beta_2 / (dist ** cfg.alpha_2)
         snr = cfg.power * chan_gain / cfg.noise
         se = np.log2(1 + snr)
         sig[i] = se
@@ -33,21 +34,85 @@ def calc_sig_strength(station_pos: np.array, gn_pos: np.ndarray, obst: List[Obst
     return np.mean(sig)
 
 def calc_dist_gpu(p1: Tensor, p2: Tensor, q: Tensor):
+    # NOTE: This direct broadcast implementation can explode memory for large q.
+    # It is kept for backwards-compatibility, but calc_sig_strength_gpu uses a
+    # chunked, memory-safe formulation below.
     v = p2[None, :, :] - p1[:, None, :]
     w = q[None, :, :] - p1[:, None, :]
     v_norm_squared = (v ** 2).sum(dim=2, keepdim=True)
-    dot_product = (v[:, :, None, :] * w[:, None, :, :]).sum(dim=3)
+    dot_product = torch.einsum('sgd,sbd->sgb', v, w)
     t = torch.clamp(dot_product / v_norm_squared, 0, 1)
     p = p1[:, None, None, :] + t[..., None] * v[:, :, None, :]
     dist = torch.norm(p - q[None, None, :, :], dim=3)
     return dist
 
+
+def _min_segment_point_dist(
+    station_pos: Tensor,
+    gn_pos: Tensor,
+    obst_pts: Tensor,
+    obst_chunk: int = 1024,
+) -> Tensor:
+    """Minimum distance from each (station,gn) segment to any obstacle point.
+
+    Returns a tensor of shape (num_station, num_gn).
+    Implemented in obstacle-point blocks to avoid allocating (S,G,N,3) intermediates.
+    """
+    if station_pos.ndim != 2 or station_pos.size(-1) != 3:
+        raise ValueError('station_pos must be (S,3)')
+    if gn_pos.ndim != 2 or gn_pos.size(-1) != 3:
+        raise ValueError('gn_pos must be (G,3)')
+    if obst_pts.ndim != 2 or obst_pts.size(-1) != 3:
+        raise ValueError('obst_pts must be (N,3)')
+
+    if obst_pts.numel() == 0:
+        # No obstacles: treat as very large clearance.
+        return torch.full(
+            (station_pos.size(0), gn_pos.size(0)),
+            float('inf'),
+            device=station_pos.device,
+            dtype=station_pos.dtype,
+        )
+
+    # v(s,g,:) = gn_pos(g,:) - station_pos(s,:)
+    v = gn_pos[None, :, :] - station_pos[:, None, :]  # (S,G,3)
+    v2 = (v * v).sum(dim=-1)  # (S,G)
+    v2 = torch.clamp(v2, min=1e-12)
+
+    min_d2 = torch.full(
+        (station_pos.size(0), gn_pos.size(0)),
+        float('inf'),
+        device=station_pos.device,
+        dtype=station_pos.dtype,
+    )
+
+    n = int(obst_pts.size(0))
+    step = max(1, int(obst_chunk))
+    for start in range(0, n, step):
+        q = obst_pts[start:start + step]  # (B,3)
+        # w(s,b,:) = q(b,:) - station_pos(s,:)
+        w = q[None, :, :] - station_pos[:, None, :]  # (S,B,3)
+        w2 = (w * w).sum(dim=-1)  # (S,B)
+
+        # dot(s,g,b) = dot(w(s,b,:), v(s,g,:))
+        dot = torch.einsum('sbd,sgd->sgb', w, v)  # (S,G,B)
+        t = torch.clamp(dot / v2[..., None], 0.0, 1.0)  # (S,G,B)
+
+        # d^2 = ||w - t*v||^2 = ||w||^2 - 2t dot(w,v) + t^2 ||v||^2
+        d2 = w2[:, None, :] - 2.0 * t * dot + (t * t) * v2[..., None]
+        min_d2 = torch.minimum(min_d2, torch.amin(d2, dim=2))
+
+    return torch.sqrt(torch.clamp(min_d2, min=0.0))
+
 def calc_sig_strength_gpu(station_pos: Tensor, gn_pos: Tensor, obst: Tensor, cfg: Config=Config.default()):
-    dist = calc_dist_gpu(station_pos, gn_pos, obst)
-    bk_val = torch.tanh(torch.min(dist, dim=-1).values*0.2)
+    # Use a chunked formulation to avoid allocating massive (S,G,N) or (S,G,N,3)
+    # intermediates when obst has many points.
+    obst_chunk = int(getattr(cfg, 'obst_chunk', 1024))
+    dist_min = _min_segment_point_dist(station_pos, gn_pos, obst, obst_chunk=obst_chunk)
+    bk_val = torch.tanh(dist_min * 0.2)
 
     norm = torch.norm(station_pos.unsqueeze(1) - gn_pos.unsqueeze(0), dim=-1)
-    chan_gain = bk_val * cfg.beta_1 / norm + (1 - bk_val) * cfg.beta_2 / (norm ** 1.65)
+    chan_gain = bk_val * cfg.beta_1 / (norm ** cfg.alpha_1) + (1 - bk_val) * cfg.beta_2 / (norm ** cfg.alpha_2)
 
     snr = cfg.power * chan_gain / cfg.noise
     se = torch.log2(1 + snr) # Data rate, Spectral Efficiency
@@ -74,7 +139,7 @@ def calc_loss(y_pred: Tensor, x_batch: Tensor, obst_points: Tensor, cfg: Config=
     bk_val = torch.tanh(0.2 * min_dist2obst)  # [batch_size, gn_num]
 
     norm = torch.norm(v, dim=2)  # [batch_size, 4]
-    chan_gain = bk_val * cfg.beta_1 / norm + (1 - bk_val) * cfg.beta_2 / (norm ** 1.65)  # [batch_size, gn_num]
+    chan_gain = bk_val * cfg.beta_1 / (norm ** cfg.alpha_1) + (1 - bk_val) * cfg.beta_2 / (norm ** cfg.alpha_2)  # [batch_size, gn_num]
 
     snr = cfg.power * chan_gain / cfg.noise  # [batch_size, gn_num]
     se = torch.log2(1 + snr)  # [batch_size, gn_num]
@@ -140,7 +205,7 @@ def probabilistic_channel_model(gn_tensor: Tensor, obst_ls: List[Obstacle], a_1:
         tanval = (180 / torch.pi) * torch.atan(diff[..., 2] / horizontal_dist)  # shape: (chunk_size, m, 4)
 
         P_LOS = 1 / (1 + a_1 * torch.exp(-a_2 * (tanval - a_1)))  # shape: (chunk_size, m, 4)
-        chan_gain = P_LOS * cfg.beta_1 / dist + (1 - P_LOS) * cfg.beta_2 / (dist ** 1.65)
+        chan_gain = P_LOS * cfg.beta_1 / (dist ** cfg.alpha_1) + (1 - P_LOS) * cfg.beta_2 / (dist ** cfg.alpha_2)
 
         snr = cfg.power * chan_gain / cfg.noise
         se = torch.log2(1 + snr)  # shape: (chunk_size, m, 4)

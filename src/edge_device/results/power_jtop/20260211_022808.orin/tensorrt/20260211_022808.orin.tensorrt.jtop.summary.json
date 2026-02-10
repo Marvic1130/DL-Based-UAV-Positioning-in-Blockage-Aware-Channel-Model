@@ -1,0 +1,27 @@
+{
+  "tag": "20260211_022808.orin.tensorrt",
+  "rail": "VDD_IN",
+  "sample_hz": 5.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260211_022808.orin/tensorrt/20260211_022808.orin.tensorrt.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 302,
+    "avg_w": 6.91735761589404,
+    "std_w": 0.5581363543003333,
+    "min_w": 5.872,
+    "max_w": 7.697,
+    "p50_w": 6.864,
+    "p95_w": 7.697
+  },
+  "stats_after_warmup": {
+    "n": 282,
+    "avg_w": 6.98163829787234,
+    "std_w": 0.5195789044658157,
+    "min_w": 5.952,
+    "max_w": 7.697,
+    "p50_w": 6.875,
+    "p95_w": 7.697
+  }
+}

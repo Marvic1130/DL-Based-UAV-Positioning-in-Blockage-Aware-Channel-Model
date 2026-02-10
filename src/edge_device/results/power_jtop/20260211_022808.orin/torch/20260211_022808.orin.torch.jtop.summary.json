@@ -1,0 +1,27 @@
+{
+  "tag": "20260211_022808.orin.torch",
+  "rail": "VDD_IN",
+  "sample_hz": 5.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260211_022808.orin/torch/20260211_022808.orin.torch.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 304,
+    "avg_w": 6.8660986842105265,
+    "std_w": 0.56673206516173,
+    "min_w": 5.832,
+    "max_w": 8.015,
+    "p50_w": 6.824,
+    "p95_w": 7.618
+  },
+  "stats_after_warmup": {
+    "n": 284,
+    "avg_w": 6.92968661971831,
+    "std_w": 0.5299588646976975,
+    "min_w": 5.872,
+    "max_w": 8.015,
+    "p50_w": 6.824,
+    "p95_w": 7.618
+  }
+}

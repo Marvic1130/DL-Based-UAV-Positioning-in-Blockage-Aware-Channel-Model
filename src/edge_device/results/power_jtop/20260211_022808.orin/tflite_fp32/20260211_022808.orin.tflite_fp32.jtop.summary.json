@@ -1,0 +1,27 @@
+{
+  "tag": "20260211_022808.orin.tflite_fp32",
+  "rail": "VDD_IN",
+  "sample_hz": 5.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260211_022808.orin/tflite_fp32/20260211_022808.orin.tflite_fp32.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 305,
+    "avg_w": 6.872796721311476,
+    "std_w": 0.5731785788634629,
+    "min_w": 5.832,
+    "max_w": 7.658,
+    "p50_w": 6.864,
+    "p95_w": 7.658
+  },
+  "stats_after_warmup": {
+    "n": 285,
+    "avg_w": 6.940659649122807,
+    "std_w": 0.5300083745977385,
+    "min_w": 5.872,
+    "max_w": 7.658,
+    "p50_w": 6.864,
+    "p95_w": 7.658
+  }
+}

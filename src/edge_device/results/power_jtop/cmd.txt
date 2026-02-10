@@ -1,0 +1,1 @@
+python3 -m src.edge_device.jtop_power_benchmark --device orin --seconds 120 --rail VDD_IN

@@ -1,0 +1,7 @@
+tag,device,engine,rail,seconds,sample_hz,warmup_s,avg_w,std_w,p95_w,n,trace_csv
+20260213_173855,nano_5w,idle,POM_5V_IN,600,1.0,5.0,2.229617845117845,0.04204979913718603,2.29,594,src/edge_device/results/power_jtop/20260213_173855.nano_5w/idle/20260213_173855.nano_5w.idle.jtop.trace.csv
+20260213_173855,nano_5w,torch,POM_5V_IN,0,1.0,5.0,2.575485294117647,0.09437266216213752,2.799,476,src/edge_device/results/power_jtop/20260213_173855.nano_5w/torch/20260213_173855.nano_5w.torch.jtop.trace.csv
+20260213_173855,nano_5w,tflite_fp32,POM_5V_IN,0,1.0,5.0,2.6854109589041095,0.10464684061052883,2.88,292,src/edge_device/results/power_jtop/20260213_173855.nano_5w/tflite_fp32/20260213_173855.nano_5w.tflite_fp32.jtop.trace.csv
+20260213_173855,nano_5w,tflite_fp16,POM_5V_IN,0,1.0,5.0,2.8277091633466136,0.22994107827394838,3.276,251,src/edge_device/results/power_jtop/20260213_173855.nano_5w/tflite_fp16/20260213_173855.nano_5w.tflite_fp16.jtop.trace.csv
+20260213_173855,nano_5w,tflite_int8,POM_5V_IN,0,1.0,5.0,2.763388429752066,0.12911365816842726,2.957,242,src/edge_device/results/power_jtop/20260213_173855.nano_5w/tflite_int8/20260213_173855.nano_5w.tflite_int8.jtop.trace.csv
+20260213_173855,nano_5w,tensorrt,POM_5V_IN,0,1.0,5.0,2.69548,0.1057450216322262,2.876,75,src/edge_device/results/power_jtop/20260213_173855.nano_5w/tensorrt/20260213_173855.nano_5w.tensorrt.jtop.trace.csv

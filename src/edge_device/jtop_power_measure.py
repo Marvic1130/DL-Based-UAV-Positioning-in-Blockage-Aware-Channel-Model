@@ -102,7 +102,8 @@ def run_jtop_measurement(
 ) -> Dict[str, Any]:
     """Run workload while sampling jtop power rail.
 
-    - seconds: 최대 실행 시간(초). kill_after=True일 때 timeout으로 사용.
+    - seconds: 최대 실행 시간(초). kill_after=True && seconds>0 일 때만 timeout으로 사용.
+      seconds<=0 이면 프로세스가 종료될 때까지 기다립니다.
     - rail: 기본은 Orin에서 흔한 VDD_IN.
     """
 
@@ -117,6 +118,7 @@ def run_jtop_measurement(
     meta = {
         "tag": tag,
         "seconds": seconds,
+        "kill_after": bool(kill_after),
         "rail": rail,
         "sample_hz": sample_hz,
         "warmup_s": warmup_s,
@@ -171,7 +173,7 @@ def run_jtop_measurement(
                         if workload_proc.poll() is not None:
                             break
 
-                        if kill_after and elapsed >= float(seconds):
+                        if kill_after and int(seconds) > 0 and elapsed >= float(seconds):
                             _terminate_process(workload_proc)
                             break
 
@@ -262,7 +264,24 @@ def run_jtop_measurement(
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="jtop으로 Jetson 전력(W)을 측정하고 기록합니다")
-    p.add_argument("--seconds", type=int, default=60)
+    p.add_argument(
+        "--seconds",
+        type=int,
+        default=60,
+        help="최대 실행 시간(초). 0 이하이면 타임아웃 없이 프로세스 종료까지 측정합니다",
+    )
+    p.add_argument(
+        "--device",
+        type=str,
+        default=os.environ.get("DEVICE_TYPE", "nano"),
+        help="결과 저장 경로에 사용할 디바이스 태그(기본: $DEVICE_TYPE 또는 nano)",
+    )
+    p.add_argument(
+        "--engine",
+        type=str,
+        default=None,
+        help="엔진 이름(지정 시 out/<tag>.<device>/<engine>/로 저장하고 파일명에도 포함)",
+    )
     p.add_argument("--rail", type=str, default="VDD_IN")
     p.add_argument("--sample-hz", type=float, default=5.0)
     p.add_argument("--warmup-s", type=float, default=0.0)
@@ -270,6 +289,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         "--out",
         type=str,
         default=os.path.join("src", "edge_device", "results", "power_jtop"),
+        help="결과 저장 베이스 디렉터리(기본: src/edge_device/results/power_jtop)",
     )
     p.add_argument("--tag", type=str, default=None)
     p.add_argument("--no-kill-after", action="store_true")
@@ -289,13 +309,25 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd[0] == "--":
         cmd = cmd[1:]
 
-    tag = args.tag or _ts()
-    out_dir = Path(args.out)
+    tag_base = str(args.tag or _ts()).replace("/", "_")
+    device = str(args.device).replace("/", "_")
+    engine = str(args.engine).replace("/", "_") if args.engine else None
 
-    logger.info(f"jtop 측정 시작 rail={args.rail} seconds={args.seconds} sample_hz={args.sample_hz}")
+    out_base = Path(args.out)
+    run_dir = out_base / f"{tag_base}.{device}"
+    out_dir = (run_dir / engine) if engine else run_dir
+
+    # 파일명 tag는 기존과 동일하게 <tag>.<device>[.<engine>]
+    tag = f"{tag_base}.{device}" + (f".{engine}" if engine else "")
+
+    kill_after = (not bool(args.no_kill_after)) and int(args.seconds) > 0
+    seconds_desc = str(args.seconds) if kill_after else "until-exit"
+    logger.info(
+        f"jtop 측정 시작 rail={args.rail} seconds={seconds_desc} sample_hz={args.sample_hz} out={out_dir}"
+    )
 
     try:
-        run_jtop_measurement(
+        summary = run_jtop_measurement(
             cmd=cmd,
             seconds=int(args.seconds),
             out_dir=out_dir,
@@ -303,11 +335,53 @@ def main(argv: Optional[List[str]] = None) -> int:
             rail=str(args.rail),
             sample_hz=float(args.sample_hz),
             warmup_s=float(args.warmup_s),
-            kill_after=not bool(args.no_kill_after),
+            kill_after=kill_after,
         )
     except Exception as e:
         logger.error(str(e))
         return 1
+
+    # benchmark처럼 run 폴더에 summary.csv를 남김(단일 엔진/커스텀 workload도 기록)
+    try:
+        run_dir.mkdir(parents=True, exist_ok=True)
+        out_csv = run_dir / "summary.csv"
+        stats = summary.get("stats_after_warmup") or {}
+        row = {
+            "tag": tag_base,
+            "device": device,
+            "engine": engine or "custom",
+            "rail": str(args.rail),
+            "seconds": int(args.seconds),
+            "sample_hz": float(args.sample_hz),
+            "warmup_s": float(args.warmup_s),
+            "avg_w": stats.get("avg_w"),
+            "std_w": stats.get("std_w"),
+            "p95_w": stats.get("p95_w"),
+            "n": stats.get("n"),
+            "trace_csv": summary.get("trace_csv"),
+        }
+        fieldnames = [
+            "tag",
+            "device",
+            "engine",
+            "rail",
+            "seconds",
+            "sample_hz",
+            "warmup_s",
+            "avg_w",
+            "std_w",
+            "p95_w",
+            "n",
+            "trace_csv",
+        ]
+        write_header = (not out_csv.exists()) or out_csv.stat().st_size == 0
+        with out_csv.open("a", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=fieldnames)
+            if write_header:
+                w.writeheader()
+            w.writerow(row)
+    except Exception as e:
+        logger.warning(f"summary.csv 저장 실패(무시): {e}")
 
     logger.info("완료")
     return 0

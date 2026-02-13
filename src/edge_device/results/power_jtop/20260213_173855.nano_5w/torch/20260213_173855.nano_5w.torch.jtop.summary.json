@@ -1,0 +1,27 @@
+{
+  "tag": "20260213_173855.nano_5w.torch",
+  "rail": "POM_5V_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260213_173855.nano_5w/torch/20260213_173855.nano_5w.torch.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 480,
+    "avg_w": 2.5756437500000002,
+    "std_w": 0.09404460467922027,
+    "min_w": 2.527,
+    "max_w": 3.114,
+    "p50_w": 2.527,
+    "p95_w": 2.799
+  },
+  "stats_after_warmup": {
+    "n": 476,
+    "avg_w": 2.575485294117647,
+    "std_w": 0.09437266216213752,
+    "min_w": 2.527,
+    "max_w": 3.114,
+    "p50_w": 2.527,
+    "p95_w": 2.799
+  }
+}

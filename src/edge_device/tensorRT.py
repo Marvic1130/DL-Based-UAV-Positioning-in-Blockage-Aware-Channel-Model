@@ -2,6 +2,7 @@ import os
 import time
 import logging
 from typing import Tuple, Optional
+import cv2
 import numpy as np
 import pandas as pd
 import torch
@@ -9,8 +10,11 @@ try:
     import tensorrt as trt
     import pycuda.driver as cuda
     import pycuda.autoinit
-except ImportError:
-    logging.warning("TensorRT or PyCUDA not available. Please install them for GPU inference.")
+except Exception as e:
+    if e is ImportError:
+        logging.warning("TensorRT or PyCUDA not available. Please install them for GPU inference.");
+    
+    logging.warning(f"Error details: {e}")
     trt = None
     cuda = None
 

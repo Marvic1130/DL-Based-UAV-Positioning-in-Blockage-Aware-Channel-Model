@@ -1,0 +1,27 @@
+{
+  "tag": "20260213_173855.nano_5w.tensorrt",
+  "rail": "POM_5V_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260213_173855.nano_5w/tensorrt/20260213_173855.nano_5w.tensorrt.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 79,
+    "avg_w": 2.6946582278481013,
+    "std_w": 0.10628274757599421,
+    "min_w": 2.6,
+    "max_w": 2.952,
+    "p50_w": 2.641,
+    "p95_w": 2.876
+  },
+  "stats_after_warmup": {
+    "n": 75,
+    "avg_w": 2.69548,
+    "std_w": 0.1057450216322262,
+    "min_w": 2.6,
+    "max_w": 2.952,
+    "p50_w": 2.641,
+    "p95_w": 2.876
+  }
+}

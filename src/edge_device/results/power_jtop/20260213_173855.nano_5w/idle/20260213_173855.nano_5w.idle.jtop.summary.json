@@ -1,0 +1,27 @@
+{
+  "tag": "20260213_173855.nano_5w.idle",
+  "rail": "POM_5V_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260213_173855.nano_5w/idle/20260213_173855.nano_5w.idle.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 599,
+    "avg_w": 2.230434056761269,
+    "std_w": 0.045374331495548155,
+    "min_w": 2.208,
+    "max_w": 2.844,
+    "p50_w": 2.208,
+    "p95_w": 2.29
+  },
+  "stats_after_warmup": {
+    "n": 594,
+    "avg_w": 2.229617845117845,
+    "std_w": 0.04204979913718603,
+    "min_w": 2.208,
+    "max_w": 2.844,
+    "p50_w": 2.208,
+    "p95_w": 2.29
+  }
+}

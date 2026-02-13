@@ -1,0 +1,36 @@
+{
+  "tag": "20260213_173855.nano_5w.idle",
+  "seconds": 600,
+  "kill_after": false,
+  "rail": "POM_5V_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "cmd": [
+    "sleep",
+    "600"
+  ],
+  "cmd_str": "sleep 600",
+  "host": {
+    "node": "nano",
+    "system": "Linux",
+    "release": "4.9.253-tegra",
+    "machine": "aarch64"
+  },
+  "python": {
+    "version": "3.8.10 (default, Nov 22 2023, 10:22:35) \n[GCC 9.4.0]",
+    "executable": "/usr/bin/python3"
+  },
+  "time": {
+    "start": "2026-02-13T17:38:55",
+    "end": "2026-02-13T17:48:55",
+    "actual_seconds": 600.6060628890991
+  },
+  "rc": {
+    "workload": 0
+  },
+  "available_rails": [
+    "POM_5V_CPU",
+    "POM_5V_GPU",
+    "POM_5V_IN"
+  ]
+}

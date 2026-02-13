@@ -1,0 +1,27 @@
+{
+  "tag": "20260213_163649.nano.tflite_int8",
+  "rail": "POM_5V_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260213_163649.nano/tflite_int8/20260213_163649.nano.tflite_int8.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 78,
+    "avg_w": 3.7214615384615386,
+    "std_w": 0.6478429829611432,
+    "min_w": 2.69,
+    "max_w": 5.102,
+    "p50_w": 3.709,
+    "p95_w": 4.88
+  },
+  "stats_after_warmup": {
+    "n": 74,
+    "avg_w": 3.6833648648648647,
+    "std_w": 0.6242009286328104,
+    "min_w": 2.69,
+    "max_w": 5.102,
+    "p50_w": 3.709,
+    "p95_w": 4.84
+  }
+}

@@ -1,7 +1,0 @@
-tag,device,engine,rail,seconds,sample_hz,warmup_s,avg_w,std_w,p95_w,n,trace_csv
-20260211_022808,orin,idle,VDD_IN,120,5.0,5.0,4.83884668989547,0.09319783861865867,5.103,574,src/edge_device/results/power_jtop/20260211_022808.orin/idle/20260211_022808.orin.idle.jtop.trace.csv
-20260211_022808,orin,torch,VDD_IN,120,5.0,5.0,6.92968661971831,0.5299588646976975,7.618,284,src/edge_device/results/power_jtop/20260211_022808.orin/torch/20260211_022808.orin.torch.jtop.trace.csv
-20260211_022808,orin,tflite_fp32,VDD_IN,120,5.0,5.0,6.940659649122807,0.5300083745977385,7.658,285,src/edge_device/results/power_jtop/20260211_022808.orin/tflite_fp32/20260211_022808.orin.tflite_fp32.jtop.trace.csv
-20260211_022808,orin,tflite_fp16,VDD_IN,120,5.0,5.0,6.9555964912280706,0.509794725102246,7.658,285,src/edge_device/results/power_jtop/20260211_022808.orin/tflite_fp16/20260211_022808.orin.tflite_fp16.jtop.trace.csv
-20260211_022808,orin,tflite_int8,VDD_IN,120,5.0,5.0,6.962671328671329,0.567299014361419,7.816,286,src/edge_device/results/power_jtop/20260211_022808.orin/tflite_int8/20260211_022808.orin.tflite_int8.jtop.trace.csv
-20260211_022808,orin,tensorrt,VDD_IN,120,5.0,5.0,6.98163829787234,0.5195789044658157,7.697,282,src/edge_device/results/power_jtop/20260211_022808.orin/tensorrt/20260211_022808.orin.tensorrt.jtop.trace.csv

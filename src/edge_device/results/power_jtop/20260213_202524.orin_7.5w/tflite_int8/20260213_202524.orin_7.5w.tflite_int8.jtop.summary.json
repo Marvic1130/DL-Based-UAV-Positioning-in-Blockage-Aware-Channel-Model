@@ -1,0 +1,27 @@
+{
+  "tag": "20260213_202524.orin_7.5w.tflite_int8",
+  "rail": "VDD_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "n_missing": 0,
+  "trace_csv": "src/edge_device/results/power_jtop/20260213_202524.orin_7.5w/tflite_int8/20260213_202524.orin_7.5w.tflite_int8.jtop.trace.csv",
+  "workload_rc": 0,
+  "stats_all": {
+    "n": 17,
+    "avg_w": 7.536352941176471,
+    "std_w": 0.14430113169686706,
+    "min_w": 7.38,
+    "max_w": 7.896,
+    "p50_w": 7.499,
+    "p95_w": 7.697
+  },
+  "stats_after_warmup": {
+    "n": 13,
+    "avg_w": 7.563076923076923,
+    "std_w": 0.14560402653903062,
+    "min_w": 7.38,
+    "max_w": 7.896,
+    "p50_w": 7.539,
+    "p95_w": 7.697
+  }
+}

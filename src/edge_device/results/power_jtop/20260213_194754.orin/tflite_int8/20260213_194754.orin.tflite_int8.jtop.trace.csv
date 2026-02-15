@@ -1,0 +1,13 @@
+t_s,watts,rail,raw_power
+1.477,8.174000,VDD_IN,"{'volt': 4960, 'curr': 1648, 'warn': 3024, 'crit': 4032, 'power': 8174, 'online': True, 'avg': 7638, 'name': 'VDD_IN'}"
+2.478,8.055000,VDD_IN,"{'volt': 4960, 'curr': 1624, 'warn': 3024, 'crit': 4032, 'power': 8055, 'online': True, 'avg': 7846, 'name': 'VDD_IN'}"
+3.479,8.055000,VDD_IN,"{'volt': 4960, 'curr': 1624, 'warn': 3024, 'crit': 4032, 'power': 8055, 'online': True, 'avg': 7950, 'name': 'VDD_IN'}"
+4.480,8.094000,VDD_IN,"{'volt': 4960, 'curr': 1632, 'warn': 3024, 'crit': 4032, 'power': 8094, 'online': True, 'avg': 8022, 'name': 'VDD_IN'}"
+5.481,8.094000,VDD_IN,"{'volt': 4960, 'curr': 1632, 'warn': 3024, 'crit': 4032, 'power': 8094, 'online': True, 'avg': 8058, 'name': 'VDD_IN'}"
+6.482,8.094000,VDD_IN,"{'volt': 4960, 'curr': 1632, 'warn': 3024, 'crit': 4032, 'power': 8094, 'online': True, 'avg': 8076, 'name': 'VDD_IN'}"
+7.483,8.055000,VDD_IN,"{'volt': 4960, 'curr': 1624, 'warn': 3024, 'crit': 4032, 'power': 8055, 'online': True, 'avg': 8065, 'name': 'VDD_IN'}"
+8.484,8.094000,VDD_IN,"{'volt': 4960, 'curr': 1632, 'warn': 3024, 'crit': 4032, 'power': 8094, 'online': True, 'avg': 8079, 'name': 'VDD_IN'}"
+9.485,8.451000,VDD_IN,"{'volt': 4960, 'curr': 1704, 'warn': 3024, 'crit': 4032, 'power': 8451, 'online': True, 'avg': 8265, 'name': 'VDD_IN'}"
+10.486,8.491000,VDD_IN,"{'volt': 4960, 'curr': 1712, 'warn': 3024, 'crit': 4032, 'power': 8491, 'online': True, 'avg': 8378, 'name': 'VDD_IN'}"
+11.488,8.332000,VDD_IN,"{'volt': 4960, 'curr': 1680, 'warn': 3024, 'crit': 4032, 'power': 8332, 'online': True, 'avg': 8355, 'name': 'VDD_IN'}"
+12.489,8.094000,VDD_IN,"{'volt': 4960, 'curr': 1632, 'warn': 3024, 'crit': 4032, 'power': 8094, 'online': True, 'avg': 8224, 'name': 'VDD_IN'}"

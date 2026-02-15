@@ -1,1 +1,2 @@
 python3 -m src.edge_device.jtop_power_benchmark --device nano_5W --rail POM_5V_IN --sample-hz 1 --idle-seconds 600 --seconds 0 --cooldown-s 10
+python3 -m src.edge_device.jtop_power_benchmark --device orin_7.5w --rail VDD_IN --sample-hz 1 --idle-seconds 600 --seconds 0 --cooldown-s 10

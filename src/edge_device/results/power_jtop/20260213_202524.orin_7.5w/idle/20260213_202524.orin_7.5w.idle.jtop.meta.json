@@ -1,0 +1,36 @@
+{
+  "tag": "20260213_202524.orin_7.5w.idle",
+  "seconds": 600,
+  "kill_after": false,
+  "rail": "VDD_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "cmd": [
+    "sleep",
+    "600"
+  ],
+  "cmd_str": "sleep 600",
+  "host": {
+    "node": "orin-nano-ys",
+    "system": "Linux",
+    "release": "5.15.136-tegra",
+    "machine": "aarch64"
+  },
+  "python": {
+    "version": "3.10.12 (main, Aug 15 2025, 14:32:43) [GCC 11.4.0]",
+    "executable": "/usr/bin/python3"
+  },
+  "time": {
+    "start": "2026-02-13T20:25:24",
+    "end": "2026-02-13T20:35:25",
+    "actual_seconds": 600.2198929786682
+  },
+  "rc": {
+    "workload": 0
+  },
+  "available_rails": [
+    "VDD_CPU_GPU_CV",
+    "VDD_IN",
+    "VDD_SOC"
+  ]
+}

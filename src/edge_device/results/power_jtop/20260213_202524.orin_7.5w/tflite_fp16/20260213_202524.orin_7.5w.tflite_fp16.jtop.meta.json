@@ -1,0 +1,43 @@
+{
+  "tag": "20260213_202524.orin_7.5w.tflite_fp16",
+  "seconds": 0,
+  "kill_after": false,
+  "rail": "VDD_IN",
+  "sample_hz": 1.0,
+  "warmup_s": 5.0,
+  "cmd": [
+    "/usr/bin/python3",
+    "-m",
+    "src.edge_device.edge_device",
+    "--engine",
+    "tflite_fp16",
+    "--device",
+    "orin_7.5w",
+    "--csv",
+    "src/train_model/result/data/gn_coords_6.csv"
+  ],
+  "cmd_str": "/usr/bin/python3 -m src.edge_device.edge_device --engine tflite_fp16 --device orin_7.5w --csv src/train_model/result/data/gn_coords_6.csv",
+  "host": {
+    "node": "orin-nano-ys",
+    "system": "Linux",
+    "release": "5.15.136-tegra",
+    "machine": "aarch64"
+  },
+  "python": {
+    "version": "3.10.12 (main, Aug 15 2025, 14:32:43) [GCC 11.4.0]",
+    "executable": "/usr/bin/python3"
+  },
+  "time": {
+    "start": "2026-02-13T20:37:10",
+    "end": "2026-02-13T20:37:39",
+    "actual_seconds": 28.520906686782837
+  },
+  "rc": {
+    "workload": 0
+  },
+  "available_rails": [
+    "VDD_CPU_GPU_CV",
+    "VDD_IN",
+    "VDD_SOC"
+  ]
+}

@@ -12,3 +12,4 @@ test.ipynb
 .DS_Store
 **_tmp
 src/brute_force/run_safe.sh
+matlab/results

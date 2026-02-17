@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Optional
 
+import cv2
 import torch
 
 from src.edge_device.pytorch import run_pytorch_inference
